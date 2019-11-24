@@ -6,6 +6,9 @@
 #include <gsl/gsl_sf_pow_int.h>
 #include <gsl/gsl_vector.h>
 
+#include <argtable2.h>
+
+static
 gsl_vector *
 gsl_vector_seq(double from, double to, double by)
 {
@@ -21,6 +24,7 @@ gsl_vector_seq(double from, double to, double by)
   return s;
 }
 
+static
 gsl_vector *
 gsl_vector_M_knots(size_t spline_df, gsl_vector *knots_inter)
 {
@@ -44,6 +48,7 @@ gsl_vector_M_knots(size_t spline_df, gsl_vector *knots_inter)
   return M_knots;
 }
 
+static
 size_t
 gsl_vector_search(const gsl_vector *v, double needle)
 {
@@ -61,6 +66,7 @@ gsl_vector_search(const gsl_vector *v, double needle)
   return i;
 }
 
+static
 void
 gsl_vector_mspline(gsl_vector *result, const double tau, const size_t spline_df, const gsl_vector *knots)
 {
@@ -110,6 +116,7 @@ gsl_vector_mspline(gsl_vector *result, const double tau, const size_t spline_df,
   }
 }
 
+static
 void
 gsl_matrix_mspline(gsl_matrix *result, const size_t spline_df, const gsl_vector *x, const gsl_vector *knots)
 {
@@ -119,6 +126,7 @@ gsl_matrix_mspline(gsl_matrix *result, const size_t spline_df, const gsl_vector 
   }
 }
 
+static
 void
 gsl_vector_ispline(gsl_vector *result, const double tau, const size_t spline_df, const gsl_vector *knots)
 {
@@ -194,6 +202,7 @@ gsl_vector_ispline(gsl_vector *result, const double tau, const size_t spline_df,
   }
 }
 
+static
 void
 gsl_matrix_ispline(gsl_matrix *result, const size_t spline_df, const gsl_vector *x, const gsl_vector *knots)
 {
@@ -203,6 +212,7 @@ gsl_matrix_ispline(gsl_matrix *result, const size_t spline_df, const gsl_vector 
   }
 }
 
+static
 void
 gsl_vector_csv_fwrite(FILE *f, gsl_vector *v)
 {
@@ -215,6 +225,7 @@ gsl_vector_csv_fwrite(FILE *f, gsl_vector *v)
   fprintf(f, "\n");
 }
 
+static
 void
 gsl_matrix_csv_fwrite(FILE *f, gsl_matrix *m)
 {
@@ -224,11 +235,16 @@ gsl_matrix_csv_fwrite(FILE *f, gsl_matrix *m)
   }
 }
 
-int
-main()
-{
-  size_t spline_df = 3;
+typedef struct config_t {
+  size_t spline_df;
 
+  gsl_vector *knots_inter;
+  gsl_vector *x;
+} config;
+
+int
+fit(size_t spline_df)
+{
   printf("knots_inter\n");
   gsl_vector *knots_inter = gsl_vector_seq(0.1, 0.9, 0.2);
   gsl_vector_csv_fwrite(stdout, knots_inter);
@@ -257,4 +273,62 @@ main()
   gsl_matrix_csv_fwrite(stdout, IX);
 
   return 0;
+}
+
+int
+main(int argc, char **argv)
+{
+  struct arg_int *spline_df;
+  struct arg_lit *help;
+  struct arg_end *end;
+
+  void *argtable[] = {
+    spline_df = arg_int0(NULL, "spline_df", "COUNT", "spline count"),
+    help      = arg_lit0(NULL, "help", "display this help and exit"),
+    end       = arg_end(2),
+  };
+
+  const char *progname = "qdm";
+  int exitcode = 0;
+  int nerrors = 0;
+
+  if (arg_nullcheck(argtable) != 0) {
+    printf("%s: insufficient memory\n",progname);
+
+    exitcode = 1;
+    goto exit;
+  }
+
+  for (int i = 0; i < spline_df->hdr.maxcount; i++) {
+    spline_df->ival[i] = 3;
+  }
+
+  nerrors = arg_parse(argc, argv, argtable);
+
+  if (help->count > 0) {
+    printf("Usage: %s", progname);
+    arg_print_syntax(stdout, argtable, "\n");
+    arg_print_glossary(stdout, argtable, "  %-25s %s\n");
+
+    exitcode = 0;
+    goto exit;
+  }
+
+  if (nerrors > 0) {
+    arg_print_errors(stderr, end, progname);
+
+    printf("Try '%s --help' for more information.\n", progname);
+
+    exitcode = 1;
+    goto exit;
+  }
+
+  exitcode = fit(spline_df->ival[0]);
+  goto exit;
+
+exit:
+  /* deallocate each non-null entry in argtable[] */
+  arg_freetable(argtable,sizeof(argtable)/sizeof(argtable[0]));
+
+  return exitcode;
 }
