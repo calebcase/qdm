@@ -13,6 +13,7 @@
 void
 qdm_mspline_vector(gsl_vector *result, const double tau, const size_t spline_df, const gsl_vector *knots)
 {
+  // FIXME First column needs to be 0
   size_t bin = qdm_vector_search(knots, tau);
 
   for (size_t m = 0; m < result->size; m++) {

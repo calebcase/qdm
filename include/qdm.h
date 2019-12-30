@@ -5,5 +5,7 @@
 #include <qdm/ispline.h>
 #include <qdm/knots.h>
 #include <qdm/mspline.h>
+#include <qdm/state.h>
+#include <qdm/theta.h>
 
 #endif /* QDM_H */

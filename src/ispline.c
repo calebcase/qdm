@@ -11,11 +11,16 @@
 #include "qdm.h"
 
 void
-qdm_ispline_vector(gsl_vector *result, const double tau, const size_t spline_df, const gsl_vector *knots)
+qdm_ispline_vector(
+    gsl_vector *result,
+    const double tau,
+    const size_t spline_df,
+    const gsl_vector *knots
+)
 {
   size_t bin = qdm_vector_search(knots, tau);
 
-  for (size_t m = 0; m < result->size; m++) {
+  for (size_t m = 0; m < result->size - 1; m++) {
     double v;
 
     if (bin < m) {
@@ -81,15 +86,21 @@ qdm_ispline_vector(gsl_vector *result, const double tau, const size_t spline_df,
       v = 1 - n / d;
     }
 
-    gsl_vector_set(result, m, v);
+    gsl_vector_set(result, 0, 1);
+    gsl_vector_set(result, m + 1, v);
   }
 }
 
 void
-qdm_ispline_matrix(gsl_matrix *result, const size_t spline_df, const gsl_vector *x, const gsl_vector *knots)
+qdm_ispline_matrix(
+    gsl_matrix *result,
+    const gsl_vector *taus,
+    const size_t spline_df,
+    const gsl_vector *knots
+)
 {
   for (size_t i = 0; i < result->size1; i++) {
     gsl_vector_view row = gsl_matrix_row(result, i);
-    qdm_ispline_vector(&row.vector, gsl_vector_get(x, i), spline_df, knots);
+    qdm_ispline_vector(&row.vector, gsl_vector_get(taus, i), spline_df, knots);
   }
 }

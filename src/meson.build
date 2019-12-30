@@ -3,17 +3,19 @@ qdm_sources = [
   'ispline.c',
   'knots.c',
   'mspline.c',
+  'state.c',
+  'theta.c',
 ]
 
 qdm_dep = [
-  dependency('gsl'),
-  dependency('argtable2'),
-  dependency('jansson'),
+  dependency('gsl', version: '>=2.6'),
+  dependency('osqp'),
 ]
 
 qdm_lib = both_libraries('qdm', qdm_sources,
   c_args: [
     '-DHAVE_INLINE',
+    '-g3'
   ],
   include_directories : qdm_inc,
   dependencies        : qdm_dep,

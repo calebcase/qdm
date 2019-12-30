@@ -6,4 +6,15 @@
 gsl_vector *
 qdm_knots_vector(size_t spline_df, gsl_vector *knots_inter);
 
+int
+qdm_knots_optimize(
+  gsl_vector *result,
+  gsl_vector *sorted_data,
+  gsl_vector *middle,
+  gsl_vector *possible_knots,
+
+  size_t iterate_n,
+  size_t spline_df
+);
+
 #endif /* QDM_KNOTS_H */
