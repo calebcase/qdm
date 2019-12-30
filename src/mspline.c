@@ -13,10 +13,11 @@
 void
 qdm_mspline_vector(gsl_vector *result, const double tau, const size_t spline_df, const gsl_vector *knots)
 {
-  // FIXME First column needs to be 0
   size_t bin = qdm_vector_search(knots, tau);
 
-  for (size_t m = 0; m < result->size; m++) {
+  gsl_vector_set(result, 0, 0);
+
+  for (size_t m = 0; m < result->size - 1; m++) {
     double v;
 
     if (bin < m) {
@@ -56,7 +57,7 @@ qdm_mspline_vector(gsl_vector *result, const double tau, const size_t spline_df,
       v = n / d;
     }
 
-    gsl_vector_set(result, m, v);
+    gsl_vector_set(result, m + 1, v);
   }
 }
 

@@ -20,6 +20,8 @@ qdm_ispline_vector(
 {
   size_t bin = qdm_vector_search(knots, tau);
 
+  gsl_vector_set(result, 0, 1);
+
   for (size_t m = 0; m < result->size - 1; m++) {
     double v;
 
@@ -86,7 +88,6 @@ qdm_ispline_vector(
       v = 1 - n / d;
     }
 
-    gsl_vector_set(result, 0, 1);
     gsl_vector_set(result, m + 1, v);
   }
 }

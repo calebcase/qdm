@@ -3,11 +3,13 @@
 #include "test_gsl.c"
 #include "test_ispline.c"
 #include "test_knots.c"
+#include "test_mspline.c"
 
 static MunitSuite test_suites[] = {
   test_suite_gsl,
   test_suite_ispline,
   test_suite_knots,
+  test_suite_mspline,
   { NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE },
 };
 

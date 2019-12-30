@@ -66,6 +66,8 @@ qdm_theta_optimize(
   data->u = u->data;
 
   osqp_set_default_settings(settings);
+  settings->verbose = 0;
+
   status = osqp_setup(&work, data, settings);
   if (status != 0) {
     goto cleanup;
