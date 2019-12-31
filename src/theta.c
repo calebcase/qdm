@@ -102,3 +102,32 @@ cleanup:
 
   return status;
 }
+
+void
+qdm_theta_matrix_constrain(
+    gsl_matrix *theta,
+    double min
+)
+{
+  /* First row is constrained to be greater than zero. */
+  for (size_t j = 0; j < theta->size2; j++) {
+    if (gsl_matrix_get(theta, 0, j) < 0) {
+      gsl_matrix_set(theta, 0, j, min);
+    }
+  }
+
+  /* Remaining cells are set to zero if the sum of the column is negative.
+   *
+   * NOTE: The first column is not modified.
+   */
+  for (size_t i = 1; i < theta->size1; i++) {
+    for (size_t j = 1; j < theta->size2; j++) {
+      gsl_vector_view column = gsl_matrix_column(theta, j);
+      double sum = qdm_vector_sum(&column.vector);
+
+      if (sum < 0) {
+        gsl_matrix_set(theta, i, j, 0);
+      }
+    }
+  }
+}

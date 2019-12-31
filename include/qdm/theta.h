@@ -11,4 +11,10 @@ qdm_theta_optimize(
     gsl_matrix *ix
 );
 
+void
+qdm_theta_matrix_constrain(
+    gsl_matrix *theta,
+    double min
+);
+
 #endif /* QDM_THETA_H */

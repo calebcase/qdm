@@ -2,6 +2,7 @@ qdm_sources = [
   'gsl.c',
   'ispline.c',
   'knots.c',
+  'logl.c',
   'mspline.c',
   'state.c',
   'theta.c',
