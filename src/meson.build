@@ -1,4 +1,6 @@
-qdm_sources = [
+# libqdm
+
+libqdm_src = [
   'gsl.c',
   'ispline.c',
   'knots.c',
@@ -8,38 +10,44 @@ qdm_sources = [
   'theta.c',
 ]
 
-qdm_dep = [
+libqdm_dep = [
   dependency('gsl', version: '>=2.6'),
   dependency('osqp'),
 ]
 
-qdm_lib = both_libraries('qdm', qdm_sources,
+libqdm = both_libraries('qdm', libqdm_src,
+  c_args: [
+    '-DHAVE_INLINE',
+    '-D_POSIX_C_SOURCE=200809L',
+    '-g3'
+  ],
+  include_directories : libqdm_inc,
+  dependencies        : libqdm_dep,
+  install             : true,
+)
+
+# qdm
+
+qdm_src = [
+  'config.c',
+  'main.c',
+]
+
+qdm_dep = [
+  dependency('gsl'      , static: true),
+  dependency('argtable2', static: true),
+  dependency('jansson'  , static: true),
+  dependency('inih'     , static: true),
+]
+
+executable('qdm', qdm_src,
   c_args: [
     '-DHAVE_INLINE',
     '-g3'
   ],
-  include_directories : qdm_inc,
-  dependencies        : qdm_dep,
-  install             : true,
+  link_args: [
+    '-static',
+    '-g3',
+  ],
+  dependencies: qdm_dep,
 )
-
-#qdm_dep = [
-#  dependency('gsl', static: true),
-#  dependency('argtable2', static: true),
-#  dependency('jansson', static: true),
-#]
-
-#executable('qdm', 'main.c',
-#  c_args: [
-#    '-DHAVE_INLINE',
-#  ],
-#  link_args: [
-#    '-static',
-#    '-g',
-#  ],
-#  dependencies: [
-#    dependency('gsl', static: true),
-#    dependency('argtable2', static: true),
-#    dependency('jansson', static: true),
-#  ],
-#)

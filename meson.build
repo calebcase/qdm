@@ -3,22 +3,23 @@ project('qdm', 'c',
   license : 'Apache2',
   default_options: [
     'b_coverate=true',
-    'c_std=c18',
     'warning_level=3',
     'werror=true',
   ],
 )
 
-qdm_inc = include_directories('include')
+libqdm_inc = include_directories('include')
 
 subdir('include')
 subdir('src')
 subdir('test')
 
-pkg_mod = import('pkgconfig')
-pkg_mod.generate(
-  libraries   : '0.1',
-  name        : 'libqdm',
-  filebase    : 'qdm',
+libqdm_pkg = import('pkgconfig')
+libqdm_pkg.generate(libqdm,
   description : 'qdm',
+)
+
+qdm_dep = declare_dependency(
+  include_directories : libqdm_inc,
+  link_with           : libqdm,
 )
