@@ -30,6 +30,17 @@ qdm_theta_optimize(
   OSQPSettings *settings = c_malloc(sizeof(OSQPSettings));
   OSQPWorkspace *work    = NULL;
 
+  /* Ensure all data fields are initialized before use. */
+  *data = (OSQPData) {
+    .n = 0,
+    .m = 0,
+    .P = NULL,
+    .A = NULL,
+    .q = NULL,
+    .l = NULL,
+    .u = NULL,
+  };
+
   status = qdm_matrix_tmm(ix, p);
   if (status != 0) {
     goto cleanup;
