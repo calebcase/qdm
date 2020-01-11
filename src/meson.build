@@ -1,6 +1,12 @@
+c_args = [
+    '-DHAVE_INLINE',
+    '-g3',
+]
+
 # libqdm
 
 libqdm_src = [
+  'data.c',
   'gsl.c',
   'ispline.c',
   'knots.c',
@@ -11,16 +17,13 @@ libqdm_src = [
 ]
 
 libqdm_dep = [
-  dependency('gsl', version: '>=2.6'),
-  dependency('osqp'),
+  dependency('gsl' , version: '>=2.6'),
+  dependency('osqp'), # version: '>=0.6'; but osqp doesn't generate a pkg config.
+  dependency('hdf5', version: '>=1.10', language: 'c'),
 ]
 
 libqdm = both_libraries('qdm', libqdm_src,
-  c_args: [
-    '-DHAVE_INLINE',
-    '-D_POSIX_C_SOURCE=200809L',
-    '-g3'
-  ],
+  c_args              : c_args,
   include_directories : libqdm_inc,
   dependencies        : libqdm_dep,
   install             : true,
@@ -34,20 +37,13 @@ qdm_src = [
 ]
 
 qdm_dep = [
-  dependency('gsl'      , static: true),
-  dependency('argtable2', static: true),
-  dependency('jansson'  , static: true),
-  dependency('inih'     , static: true),
+  dependency('argtable2', version: '>=2.13'),
+  dependency('inih'     , version: '>=0.47'),
 ]
 
 executable('qdm', qdm_src,
-  c_args: [
-    '-DHAVE_INLINE',
-    '-g3'
-  ],
-  link_args: [
-    '-static',
-    '-g3',
-  ],
-  dependencies: qdm_dep,
+  c_args              : c_args,
+  include_directories : libqdm_inc,
+  link_with           : libqdm.get_shared_lib(),
+  dependencies        : libqdm_dep + qdm_dep,
 )

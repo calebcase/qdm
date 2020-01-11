@@ -7,11 +7,7 @@
 
 #include <inih/ini.h>
 
-typedef struct {
-#define CFG(s, n, t, d) t s##_##n;
-#include "config.def"
-#undef CFG
-} qdm_config;
+#include "config.h"
 
 int
 qdm_config_handler(
@@ -40,40 +36,35 @@ qdm_config_handler(
   return 0;
 }
 
-static void _dump_config_str    ( char *x  )  { printf ( "%s"    , x ) ; }
-static void _dump_config_size   ( size_t x )  { printf ( "%zu"   , x ) ; }
-static void _dump_config_double ( double x )  { printf ( "%.17g" , x ) ; }
+static void _qdm_config_fprint_str   (FILE *f, char *x ) { fprintf(f, "%s"   , x); }
+static void _qdm_config_fprint_size  (FILE *f, size_t x) { fprintf(f, "%zu"  , x); }
+static void _qdm_config_fprint_double(FILE *f, double x) { fprintf(f, "%.17g", x); }
 
-static
 void
-dump_config(qdm_config *cfg)
+qdm_config_fprint(FILE *f, qdm_config *cfg)
 {
 #define CFG(s, n, t, d) { \
-  printf("%s_%s = ", #s, #n); \
+  fprintf(f, "%s_%s = ", #s, #n); \
   _Generic(((t)d), \
-    char *: _dump_config_str, \
-    size_t: _dump_config_size, \
-    double: _dump_config_double \
-  )(cfg->s##_##n); \
-  printf("\n"); \
+    char *: _qdm_config_fprint_str, \
+    size_t: _qdm_config_fprint_size, \
+    double: _qdm_config_fprint_double \
+  )(f, cfg->s##_##n); \
+  fprintf(f, "\n"); \
 }
 #include "config.def"
 #undef CFG
 }
 
 int
-qdm_config_init()
+qdm_config_new(FILE *f, qdm_config *cfg)
 {
-  int status = 0;
-
-  qdm_config cfg = {
+  qdm_config defaults = {
 #define CFG(s, n, t, d) d,
 #include "config.def"
 #undef CFG
   };
+  *cfg = defaults;
 
-  status = ini_parse("test.ini", qdm_config_handler, &cfg);
-  dump_config(&cfg);
-
-  return status;
+  return ini_parse_file(f, qdm_config_handler, cfg);
 }

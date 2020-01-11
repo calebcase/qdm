@@ -10,6 +10,8 @@ CFG(xi, tune_sd   , double, 0.5)
 CFG(theta, min    , double, 0.0001)
 CFG(theta, tune_sd, double, 0.1)
 
+CFG(data, path, char *, "input.h5")
+
 CFG(main, burn     , size_t, 500)
 CFG(main, iter     , size_t, 200)
 CFG(main, thin     , size_t, 2)

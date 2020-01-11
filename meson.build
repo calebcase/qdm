@@ -18,8 +18,3 @@ libqdm_pkg = import('pkgconfig')
 libqdm_pkg.generate(libqdm,
   description : 'qdm',
 )
-
-qdm_dep = declare_dependency(
-  include_directories : libqdm_inc,
-  link_with           : libqdm,
-)

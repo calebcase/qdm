@@ -3,6 +3,7 @@ install_headers(
 )
 
 install_headers(
+  'qdm/data.h',
   'qdm/gsl.h',
   'qdm/ispline.h',
   'qdm/knots.h',
