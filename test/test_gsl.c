@@ -2,6 +2,7 @@
 #include <munit.h>
 #include <osqp/cs.h>
 #include <osqp/osqp.h>
+#include <unistd.h>
 
 #include <qdm.h>
 
@@ -307,6 +308,60 @@ test_qdm_matrix_to_csc_matrix(
   return MUNIT_OK;
 }
 
+static
+MunitResult
+test_qdm_vector_hd5_write(
+    MUNIT_UNUSED const MunitParameter params[],
+    MUNIT_UNUSED void* fixture
+)
+{
+  int status = 0;
+
+  double v_data[] = {
+    1, 2, 3, 4, 5, 6, 7, 8, 9,
+  };
+
+  gsl_vector_view v = gsl_vector_view_array(v_data, 9);
+
+  int tf_fd = 0;
+  char tf_name[] = "/tmp/qdm-test-hd5-vector-XXXXXX";
+  tf_fd = mkstemp(tf_name);
+  close(tf_fd);
+
+  status = qdm_vector_hd5_write(tf_name, "data", "v", &v.vector);
+  munit_assert_int(status, ==, 0);
+
+  return MUNIT_OK;
+}
+
+static
+MunitResult
+test_qdm_matrix_hd5_write(
+    MUNIT_UNUSED const MunitParameter params[],
+    MUNIT_UNUSED void* fixture
+)
+{
+  int status = 0;
+
+  double m_data[] = {
+    1, 2, 3,
+    4, 5, 6,
+    7, 8, 9,
+  };
+
+  gsl_matrix_view m = gsl_matrix_view_array(m_data, 3, 3);
+
+  int tf_fd = 0;
+  char tf_name[] = "/tmp/qdm-test-hd5-matrix-XXXXXX";
+  tf_fd = mkstemp(tf_name);
+  close(tf_fd);
+
+  status = qdm_matrix_hd5_write(tf_name, "data", "m", &m.matrix);
+  munit_assert_int(status, ==, 0);
+
+  return MUNIT_OK;
+}
+
 static char *test_param_qdm_vector_seq_min[] = {
   "1",
   "10",
@@ -383,6 +438,22 @@ MunitTest tests_gsl[] = {
     NULL                          , // tear_down
     MUNIT_TEST_OPTION_NONE        , // options
     NULL                          , // parameters
+  },
+  {
+    "/qdm_vector_hd5_write"   , // name
+    test_qdm_vector_hd5_write , // test
+    NULL                      , // setup
+    NULL                      , // tear_down
+    MUNIT_TEST_OPTION_NONE    , // options
+    NULL                      , // parameters
+  },
+  {
+    "/qdm_matrix_hd5_write"   , // name
+    test_qdm_matrix_hd5_write , // test
+    NULL                      , // setup
+    NULL                      , // tear_down
+    MUNIT_TEST_OPTION_NONE    , // options
+    NULL                      , // parameters
   },
   { NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
 };

@@ -1,6 +1,9 @@
 #ifndef QDM_DATA_H
 #define QDM_DATA_H 1
 
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
+
 typedef struct {
   double year;
   double month;
@@ -15,6 +18,55 @@ qdm_data_model_read(
     const char *file_path,
     const char *group_path,
     const char *table_name
+);
+
+typedef int (*qdm_data_model_selector)(const qdm_data_model *record, void *arg);
+
+size_t
+qdm_data_model_selected(
+    const qdm_data_model *records,
+    size_t nrecords,
+    qdm_data_model_selector select,
+    void *arg
+);
+
+gsl_vector *
+qdm_data_model_year_vector(
+    const qdm_data_model *records,
+    size_t nrecords,
+    qdm_data_model_selector select,
+    void *arg
+);
+
+gsl_vector *
+qdm_data_model_value_vector(
+    const qdm_data_model *records,
+    size_t nrecords,
+    qdm_data_model_selector select,
+    void *arg
+);
+
+int
+qdm_data_model_select_by_month(
+    const qdm_data_model *record,
+    double *month
+);
+
+typedef struct {
+  gsl_matrix *theta;
+  gsl_matrix *theta_star;
+
+  gsl_vector *ll;
+  gsl_vector *tau;
+
+  gsl_vector *xi;
+} qdm_intermediate_result;
+
+int
+qdm_data_intermediate_result_write(
+    const char *file_path,
+    const char *group_path,
+    const qdm_intermediate_result *result
 );
 
 #endif /* QDM_DATA_H */

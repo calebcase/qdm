@@ -37,10 +37,35 @@ qdm_vector_rss(const gsl_vector *y, const gsl_vector *fx);
 double
 qdm_vector_sum(gsl_vector *v);
 
+size_t
+qdm_vector_greater_than(const gsl_vector *v, double value);
+
 void
 qdm_matrix_select_upper_triangle(gsl_matrix *m);
 
 int
 qdm_matrix_to_csc_matrix(csc **result, gsl_matrix *m);
+
+gsl_vector *
+qdm_vector_copy(const gsl_vector *src);
+
+gsl_matrix *
+qdm_matrix_copy(const gsl_matrix *src);
+
+int
+qdm_vector_hd5_write(
+    const char *file_path,
+    const char *group_path,
+    const char *dataset_name,
+    const gsl_vector *v
+);
+
+int
+qdm_matrix_hd5_write(
+    const char *file_path,
+    const char *group_path,
+    const char *dataset_name,
+    const gsl_matrix *m
+);
 
 #endif /* QDM_GSL_H */
