@@ -208,7 +208,11 @@ qdm_main(qdm_config *cfg)
 
   gsl_matrix *theta_acc = gsl_matrix_calloc(theta->size1, theta->size2);
 
+  gsl_matrix *theta_p = gsl_matrix_alloc(theta->size1, theta->size2);
+
   gsl_matrix *theta_star = gsl_matrix_alloc(theta->size1, theta->size2);
+  gsl_matrix_memcpy(theta_star, theta);
+
   gsl_matrix *theta_star_p = gsl_matrix_alloc(theta->size1, theta->size2);
 
   gsl_vector *xi = gsl_vector_alloc(2);
@@ -240,12 +244,24 @@ qdm_main(qdm_config *cfg)
         double proposal = gsl_matrix_get(theta_tune, p, m) * gsl_ran_ugaussian(qdm_state->rng) + gsl_matrix_get(theta_star, p, m);
         gsl_matrix_set(theta_star_p, p, m, proposal);
 
-        qdm_theta_matrix_constrain(theta_star_p, cfg->theta_min);
+        gsl_matrix_memcpy(theta_p, theta_star_p);
+        qdm_theta_matrix_constrain(theta_p, cfg->theta_min);
+
+        /*
+        fprintf(stderr, "theta_star\n");
+        qdm_matrix_csv_fwrite(stderr, theta_star);
+
+        fprintf(stderr, "theta_star_p\n");
+        qdm_matrix_csv_fwrite(stderr, theta_star_p);
+
+        fprintf(stderr, "theta_p\n");
+        qdm_matrix_csv_fwrite(stderr, theta_p);
+        */
 
         for (size_t i = 0; i < values->size; i++) {
           gsl_vector_set(x_ith, 1, gsl_vector_get(years, i));
 
-          status = gsl_blas_dgemv(CblasTrans, 1, theta_star_p, x_ith, 0, mmm);
+          status = gsl_blas_dgemv(CblasTrans, 1, theta_p, x_ith, 0, mmm);
           if (status != 0) {
             return status;
           }
@@ -278,7 +294,7 @@ qdm_main(qdm_config *cfg)
             return status;
           }
 
-          status = gsl_matrix_memcpy(theta, theta_star);
+          status = gsl_matrix_memcpy(theta, theta_p);
           if (status != 0) {
             return status;
           }
@@ -288,6 +304,11 @@ qdm_main(qdm_config *cfg)
             return status;
           }
         }
+
+        /*
+        fprintf(stderr, "theta_acc\n");
+        qdm_matrix_csv_fwrite(stderr, theta_acc);
+        */
       }
     }
 
@@ -411,14 +432,14 @@ qdm_main(qdm_config *cfg)
     }
 
     /* Update tuning parameters. */
-    if (iteration < cfg->main_burn && iteration % cfg->main_acc_check == 0) {
+    if (iteration < cfg->main_burn && (iteration + 1) % cfg->main_acc_check == 0) {
       for (size_t p = 0; p < theta->size1; p++) {
         for (size_t m = 0; m < theta->size2; m++) {
-          if (gsl_matrix_get(theta_acc, p, m) / cfg->main_acc_check > 0.5) {
-            gsl_matrix_set(theta_tune, p, m, gsl_matrix_get(theta_tune, p, m) * 1.2);
+          if (gsl_matrix_get(theta_acc, p, m) / (double)cfg->main_acc_check > 0.5) {
+            gsl_matrix_set(theta_tune, p, m, gsl_min(gsl_matrix_get(theta_tune, p, m) * 1.2, 5));
           }
 
-          if (gsl_matrix_get(theta_acc, p, m) / cfg->main_acc_check < 0.3) {
+          if (gsl_matrix_get(theta_acc, p, m) / (double)cfg->main_acc_check < 0.3) {
             gsl_matrix_set(theta_tune, p, m, gsl_matrix_get(theta_tune, p, m) * 0.8);
           }
         }
@@ -444,8 +465,25 @@ qdm_main(qdm_config *cfg)
     }
   }
 
+  fprintf(stderr, "final theta_tune\n");
+  qdm_matrix_csv_fwrite(stderr, theta_tune);
+
+  fprintf(stderr, "final theta_acc\n");
+  qdm_matrix_csv_fwrite(stderr, theta_acc);
+
+  fprintf(stderr, "final xi_tune\n");
+  qdm_vector_csv_fwrite(stderr, xi_tune);
+
+  fprintf(stderr, "final xi_acc\n");
+  qdm_vector_csv_fwrite(stderr, xi_acc);
+
   for (size_t i = 0; i < cfg->main_iter / cfg->main_thin; i++) {
     fprintf(stderr, "keep[%zu]\n", i);
+  }
+
+  status = qdm_vector_hd5_write(cfg->data_output, "output", "knots", interior_knots);
+  if (status < 0) {
+    return status;
   }
 
   return status;
