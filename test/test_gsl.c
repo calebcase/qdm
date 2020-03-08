@@ -328,7 +328,20 @@ test_qdm_vector_hd5_write(
   tf_fd = mkstemp(tf_name);
   close(tf_fd);
 
-  status = qdm_vector_hd5_write(tf_name, "data", "v", &v.vector);
+  hid_t tf_file = qdm_data_create_file(tf_name);
+  munit_assert_int(tf_file, >=, 0);
+  unlink(tf_name);
+
+  hid_t tf_group = qdm_data_create_group(tf_file, "data");
+  munit_assert_int(tf_group, >=, 0);
+
+  status = qdm_vector_hd5_write(tf_group, "v", &v.vector);
+  munit_assert_int(status, ==, 0);
+
+  status = H5Gclose(tf_group);
+  munit_assert_int(status, ==, 0);
+
+  status = H5Fclose(tf_file);
   munit_assert_int(status, ==, 0);
 
   return MUNIT_OK;
@@ -356,7 +369,20 @@ test_qdm_matrix_hd5_write(
   tf_fd = mkstemp(tf_name);
   close(tf_fd);
 
-  status = qdm_matrix_hd5_write(tf_name, "data", "m", &m.matrix);
+  hid_t tf_file = qdm_data_create_file(tf_name);
+  munit_assert_int(tf_file, >=, 0);
+  unlink(tf_name);
+
+  hid_t tf_group = qdm_data_create_group(tf_file, "data");
+  munit_assert_int(tf_group, >=, 0);
+
+  status = qdm_matrix_hd5_write(tf_group, "m", &m.matrix);
+  munit_assert_int(status, ==, 0);
+
+  status = H5Gclose(tf_group);
+  munit_assert_int(status, ==, 0);
+
+  status = H5Fclose(tf_file);
   munit_assert_int(status, ==, 0);
 
   return MUNIT_OK;

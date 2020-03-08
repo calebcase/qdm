@@ -54,17 +54,15 @@ qdm_matrix_copy(const gsl_matrix *src);
 
 int
 qdm_vector_hd5_write(
-    const char *file_path,
-    const char *group_path,
-    const char *dataset_name,
+    hid_t id,
+    const char *name,
     const gsl_vector *v
 );
 
 int
 qdm_matrix_hd5_write(
-    const char *file_path,
-    const char *group_path,
-    const char *dataset_name,
+    hid_t id,
+    const char *name,
     const gsl_matrix *m
 );
 

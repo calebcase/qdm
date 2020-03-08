@@ -1,8 +1,9 @@
 #ifndef QDM_DATA_H
 #define QDM_DATA_H 1
 
-#include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_vector.h>
+#include <hdf5.h>
 
 typedef struct {
   double year;
@@ -64,9 +65,20 @@ typedef struct {
 
 int
 qdm_data_intermediate_result_write(
-    const char *file_path,
-    const char *group_path,
+    hid_t id,
+    size_t iteration,
     const qdm_intermediate_result *result
+);
+
+hid_t
+qdm_data_create_file(
+    const char *path
+);
+
+hid_t
+qdm_data_create_group(
+    hid_t id,
+    const char *name
 );
 
 #endif /* QDM_DATA_H */

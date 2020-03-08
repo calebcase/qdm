@@ -16,6 +16,15 @@ qdm_main(qdm_config *cfg)
 {
   int status = 0;
 
+  hid_t output_file = -1;
+
+  /* Open Output */
+
+  output_file = qdm_data_create_file(cfg->data_output);
+  if (output_file < 0) {
+    return output_file;
+  }
+
   /* Load Data */
 
   qdm_data_model *records = NULL;
@@ -419,13 +428,7 @@ qdm_main(qdm_config *cfg)
         .xi         = qdm_vector_copy(xi),
       };
 
-      char *group_path = NULL;
-      status = asprintf(&group_path, "output/intermediate/iteration_%zu", iteration);
-      if (status < 0) {
-        return status;
-      }
-
-      status = qdm_data_intermediate_result_write(cfg->data_output, group_path, &keep[idx]);
+      status = qdm_data_intermediate_result_write(output_file, iteration, &keep[idx]);
       if (status != 0) {
         return status;
       }
@@ -481,7 +484,7 @@ qdm_main(qdm_config *cfg)
     fprintf(stderr, "keep[%zu]\n", i);
   }
 
-  status = qdm_vector_hd5_write(cfg->data_output, "output", "knots", interior_knots);
+  status = qdm_vector_hd5_write(output_file, "output/knots", interior_knots);
   if (status < 0) {
     return status;
   }

@@ -408,36 +408,16 @@ cleanup:
 
 int
 qdm_vector_hd5_write(
-    const char *file_path,
-    const char *group_path,
-    const char *dataset_name,
+    hid_t id,
+    const char *name,
     const gsl_vector *v
 )
 {
   int status = 0;
 
-  hid_t file      = -1;
-  hid_t group     = -1;
   hid_t datatype  = -1;
   hid_t dataspace = -1;
   hid_t dataset   = -1;
-
-  status = create_hd5(file_path, group_path);
-  if (status != 0) {
-    goto cleanup;
-  }
-
-  file = H5Fopen(file_path, H5F_ACC_RDWR, H5P_DEFAULT);
-  if (file < 0) {
-    status = file;
-    goto cleanup;
-  }
-
-  group = H5Gopen(file, group_path, H5P_DEFAULT);
-  if (group < 0) {
-    status = group;
-    goto cleanup;
-  }
 
   datatype = H5Tcopy(H5T_NATIVE_DOUBLE);
 
@@ -455,7 +435,7 @@ qdm_vector_hd5_write(
     goto cleanup;
   }
 
-  dataset = H5Dcreate(group, dataset_name, datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  dataset = H5Dcreate(id, name, datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   if (dataset < 0) {
     status = dataset;
     goto cleanup;
@@ -479,49 +459,23 @@ cleanup:
     H5Tclose(datatype);
   }
 
-  if (group >= 0) {
-    H5Gclose(group);
-  }
-
-  if (file >= 0) {
-    H5Fclose(file);
-  }
+  H5Oflush(id);
 
   return status;
 }
 
 int
 qdm_matrix_hd5_write(
-    const char *file_path,
-    const char *group_path,
-    const char *dataset_name,
+    hid_t id,
+    const char *name,
     const gsl_matrix *m
 )
 {
   int status = 0;
 
-  hid_t file      = -1;
-  hid_t group     = -1;
   hid_t datatype  = -1;
   hid_t dataspace = -1;
   hid_t dataset   = -1;
-
-  status = create_hd5(file_path, group_path);
-  if (status != 0) {
-    goto cleanup;
-  }
-
-  file = H5Fopen(file_path, H5F_ACC_RDWR, H5P_DEFAULT);
-  if (file < 0) {
-    status = file;
-    goto cleanup;
-  }
-
-  group = H5Gopen(file, group_path, H5P_DEFAULT);
-  if (group < 0) {
-    status = group;
-    goto cleanup;
-  }
 
   datatype = H5Tcopy(H5T_NATIVE_DOUBLE);
 
@@ -540,7 +494,7 @@ qdm_matrix_hd5_write(
     goto cleanup;
   }
 
-  dataset = H5Dcreate(group, dataset_name, datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  dataset = H5Dcreate(id, name, datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   if (dataset < 0) {
     status = dataset;
     goto cleanup;
@@ -564,13 +518,7 @@ cleanup:
     H5Tclose(datatype);
   }
 
-  if (group >= 0) {
-    H5Gclose(group);
-  }
-
-  if (file >= 0) {
-    H5Fclose(file);
-  }
+  H5Oflush(id);
 
   return status;
 }

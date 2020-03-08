@@ -1,4 +1,9 @@
 /* Functions for working with the HDF5 files. */
+
+#define _GNU_SOURCE // Required for asprintf.
+#include <stdio.h>
+#undef _GNU_SOURCE
+
 #include <math.h>
 #include <stdlib.h>
 
@@ -165,36 +170,105 @@ qdm_data_model_select_by_month(
 
 int
 qdm_data_intermediate_result_write(
-    const char *file_path,
-    const char *group_path,
+    hid_t id,
+    size_t iteration,
     const qdm_intermediate_result *result
 )
 {
   int status = 0;
 
-  status = qdm_matrix_hd5_write(file_path, group_path, "theta", result->theta);
+  char *group_path = NULL;
+  hid_t group = -1;
+
+  status = asprintf(&group_path, "output/intermediate/iteration_%zu", iteration);
   if (status < 0) {
-    return status;
+    goto cleanup;
   }
 
-  status = qdm_matrix_hd5_write(file_path, group_path, "theta_star", result->theta_star);
-  if (status < 0) {
-    return status;
+  group = qdm_data_create_group(id, group_path);
+  if (group < 0) {
+    status = group;
+    goto cleanup;
   }
 
-  status = qdm_vector_hd5_write(file_path, group_path, "ll", result->ll);
+  status = qdm_matrix_hd5_write(group, "theta", result->theta);
   if (status < 0) {
-    return status;
+    goto cleanup;
   }
 
-  status = qdm_vector_hd5_write(file_path, group_path, "tau", result->tau);
+  status = qdm_matrix_hd5_write(group, "theta_star", result->theta_star);
   if (status < 0) {
-    return status;
+    goto cleanup;
   }
 
-  status = qdm_vector_hd5_write(file_path, group_path, "xi", result->xi);
+  status = qdm_vector_hd5_write(group, "ll", result->ll);
   if (status < 0) {
-    return status;
+    goto cleanup;
+  }
+
+  status = qdm_vector_hd5_write(group, "tau", result->tau);
+  if (status < 0) {
+    goto cleanup;
+  }
+
+  status = qdm_vector_hd5_write(group, "xi", result->xi);
+  if (status < 0) {
+    goto cleanup;
+  }
+
+cleanup:
+  if (group >= 0) {
+    H5Gclose(group);
+  }
+
+  if (group_path != NULL) {
+    free(group_path);
+  }
+
+  return status;
+}
+
+hid_t
+qdm_data_create_file(
+    const char *path
+) {
+  return H5Fcreate(path, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+}
+
+hid_t
+qdm_data_create_group(
+    hid_t id,
+    const char *name
+) {
+  int status = 0;
+
+  hid_t gcpl  = -1;
+  hid_t group = -1;
+
+  gcpl = H5Pcreate(H5P_LINK_CREATE);
+  if (gcpl < 0) {
+    status = gcpl;
+    goto cleanup;
+  }
+
+  status = H5Pset_create_intermediate_group(gcpl, 1);
+  if (status < 0) {
+    goto cleanup;
+  }
+
+  group = H5Gcreate(id, name, gcpl, H5P_DEFAULT, H5P_DEFAULT);
+  if (group < 0) {
+    status = group;
+    goto cleanup;
+  }
+
+cleanup:
+  if (gcpl >= 0) {
+    H5Pclose(gcpl);
+  }
+
+  if (status == 0) {
+    return group;
   }
 
   return status;
