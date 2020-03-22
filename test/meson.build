@@ -7,7 +7,7 @@ munit_exe = executable('munit', 'test.c',
     dependency('osqp', version: '>=0.6'),
 
     dependency('munit', fallback: ['munit', 'munit_dep']),
-  ]                   ,
+  ],
 )
 
 test('munit', munit_exe,
@@ -17,6 +17,5 @@ test('munit', munit_exe,
   args: [
     '--log-visible', 'debug',
     '--show-stderr',
-    '--param', 'y_path', meson.current_source_dir() + '/data/y.csv',
   ],
 )

@@ -2,6 +2,19 @@
 
 ## Building from Source
 
+### Requirements
+
+The following tools are required:
+
+* git
+* git-lfs
+* docker
+
+**NOTE** Git LFS is required. Please ensure it is installed *before* attempting
+to clone the repository.
+
+### Build
+
 Build the binary using docker:
 
 ```bash
