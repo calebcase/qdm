@@ -2,11 +2,12 @@ munit_exe = executable('munit', 'test.c',
   include_directories : libqdm_inc,
   link_with           : libqdm,
   dependencies: [
-    dependency('gsl'),
+    dependency('gsl' , version: '>=2.6'),
     dependency('hdf5', version: '>=1.10', language: 'c'),
+    dependency('osqp', version: '>=0.6'),
+
     dependency('munit', fallback: ['munit', 'munit_dep']),
-    dependency('osqp'),
-  ],
+  ]                   ,
 )
 
 test('munit', munit_exe,

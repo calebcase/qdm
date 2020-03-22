@@ -17,12 +17,12 @@ libqdm_src = [
 ]
 
 libqdm_dep = [
-  dependency('gsl' , version: '>=2.6'),
-  dependency('osqp'), # version: '>=0.6'; but osqp doesn't generate a pkg config.
-  dependency('hdf5', version: '>=1.10', language: 'c'),
+  dependency('gsl' , version: '>=2.6' , static: true),
+  dependency('hdf5', version: '>=1.10', static: true , language: 'c'),
+  dependency('osqp', version: '>=0.6' , static: true),
 ]
 
-libqdm = both_libraries('qdm', libqdm_src,
+libqdm = static_library('qdm', libqdm_src,
   c_args              : c_args,
   include_directories : libqdm_inc,
   dependencies        : libqdm_dep,
@@ -37,13 +37,23 @@ qdm_src = [
 ]
 
 qdm_dep = [
-  dependency('argtable2', version: '>=2.13'),
-  dependency('inih'     , version: '>=0.47'),
+  dependency('argtable2', version: '>=2.13', static: true),
+  dependency('gsl'      , version: '>=2.6' , static: true),
+  dependency('hdf5'     , version: '>=1.10', static: true , language: 'c'),
+  dependency('inih'     , version: '>=0.47', static: true),
+  dependency('osqp'     , version: '>=0.6' , static: true),
 ]
 
 executable('qdm', qdm_src,
   c_args              : c_args,
   include_directories : libqdm_inc,
-  link_with           : libqdm.get_shared_lib(),
-  dependencies        : libqdm_dep + qdm_dep,
+  link_with           : libqdm,
+  dependencies        : qdm_dep,
+  install             : true,
+
+  # Several of these are manually added so that static compilation will work.
+  # Most of them are dependencies of hdf5 that are not handled properly with
+  # pkg-config. There is a warning during compilation about dlopen, but as far
+  # as I can tell the code path for dlopen is never called.
+  link_args           : ['-static', '-pthread', '-laec', '-lsz', '-lz', '-ldl'],
 )
