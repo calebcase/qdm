@@ -1,3 +1,5 @@
+[![Docker Status][qdm-docker-badge]][qdm-docker]
+
 # QDM
 
 ## Building from Source
@@ -44,3 +46,8 @@ Run locally (if you have extracted the binary):
 ```bash
 ./qdm
 ```
+
+---
+
+[qdm-docker-badge]: https://img.shields.io/docker/cloud/build/calebcase/qdm
+[qdm-docker]: https://hub.docker.com/repository/docker/calebcase/qdm
