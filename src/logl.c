@@ -239,3 +239,57 @@ cleanup:
 
   return status;
 }
+
+int
+qdm_logl_2(
+    double *log_likelihood,
+    double *tau,
+
+    double x,
+    double y,
+
+    double tau_low,
+    double tau_high,
+
+    double xi_low,
+    double xi_high,
+
+    size_t spline_df,
+
+    const gsl_matrix *theta,
+    const gsl_vector *knots
+)
+{
+  int status = 0;
+
+  double xi_data[2] = {1, x};
+  gsl_vector_view xi = gsl_vector_view_array(xi_data, 2);
+
+  double mmm_data[theta->size2];
+  gsl_vector_view mmm = gsl_vector_view_array(mmm_data, theta->size2);
+
+  status = gsl_blas_dgemv(CblasTrans, 1, theta, &xi.vector, 0, &mmm.vector);
+  if (status != 0) {
+    return status;
+  }
+
+  status = qdm_logl(
+      log_likelihood,
+      tau,
+
+      y,
+      spline_df,
+      knots,
+      &mmm.vector,
+
+      tau_low,
+      tau_high,
+      xi_low,
+      xi_high
+  );
+  if (status != 0) {
+    return status;
+  }
+
+  return status;
+}

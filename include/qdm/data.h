@@ -21,14 +21,14 @@ qdm_data_model_read(
     const char *table_name
 );
 
-typedef int (*qdm_data_model_selector)(const qdm_data_model *record, void *arg);
+typedef int (*qdm_data_model_selector)(const qdm_data_model *record, const void *arg);
 
 size_t
 qdm_data_model_selected(
     const qdm_data_model *records,
     size_t nrecords,
     qdm_data_model_selector select,
-    void *arg
+    const void *arg
 );
 
 gsl_vector *
@@ -36,7 +36,7 @@ qdm_data_model_year_vector(
     const qdm_data_model *records,
     size_t nrecords,
     qdm_data_model_selector select,
-    void *arg
+    const void *arg
 );
 
 gsl_vector *
@@ -44,13 +44,13 @@ qdm_data_model_value_vector(
     const qdm_data_model *records,
     size_t nrecords,
     qdm_data_model_selector select,
-    void *arg
+    const void *arg
 );
 
 int
 qdm_data_model_select_by_month(
     const qdm_data_model *record,
-    double *month
+    const double *month
 );
 
 typedef struct {
@@ -62,6 +62,11 @@ typedef struct {
 
   gsl_vector *xi;
 } qdm_intermediate_result;
+
+void
+qdm_data_intermediate_free(
+    qdm_intermediate_result *result
+);
 
 int
 qdm_data_intermediate_result_write(

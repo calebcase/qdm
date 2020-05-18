@@ -29,6 +29,9 @@ int
 qdm_matrix_det_tmm(gsl_matrix *m, double *det);
 
 gsl_vector *
+qdm_vector_sorted(const gsl_vector *v);
+
+gsl_vector *
 qdm_vector_quantile(gsl_vector *data, gsl_vector *probs);
 
 double
@@ -53,6 +56,13 @@ gsl_matrix *
 qdm_matrix_copy(const gsl_matrix *src);
 
 int
+qdm_vector_hd5_read(
+    hid_t id,
+    const char *name,
+    gsl_vector **v
+);
+
+int
 qdm_vector_hd5_write(
     hid_t id,
     const char *name,
@@ -60,10 +70,25 @@ qdm_vector_hd5_write(
 );
 
 int
+qdm_matrix_hd5_read(
+    hid_t id,
+    const char *name,
+    gsl_matrix **m
+);
+
+int
 qdm_matrix_hd5_write(
     hid_t id,
     const char *name,
     const gsl_matrix *m
+);
+
+gsl_vector *
+qdm_matrix_filter(
+    const gsl_matrix *m,
+    size_t needle_column,
+    double needle_value,
+    size_t select_column
 );
 
 #endif /* QDM_GSL_H */

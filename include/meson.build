@@ -3,6 +3,7 @@ install_headers(
 )
 
 install_headers(
+  'qdm/config.h',
   'qdm/data.h',
   'qdm/gsl.h',
   'qdm/ispline.h',

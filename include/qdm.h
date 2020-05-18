@@ -1,6 +1,7 @@
 #ifndef QDM_H
 #define QDM_H 1
 
+#include <qdm/config.h>
 #include <qdm/data.h>
 #include <qdm/gsl.h>
 #include <qdm/ispline.h>

@@ -97,8 +97,22 @@ qdm_theta_optimize(
 
 cleanup:
   if (data != NULL) {
+    if (data->A != NULL) {
+      free(data->A->p);
+      free(data->A->i);
+      free(data->A->x);
+    }
+
     c_free(data->A);
+
+    if (data->P != NULL) {
+      free(data->P->p);
+      free(data->P->i);
+      free(data->P->x);
+    }
+
     c_free(data->P);
+
     c_free(data);
   }
 
