@@ -1,70 +1,135 @@
-#include <inttypes.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
+/* Functions for loading the config. */
+
+#include <math.h>
 #include <stdlib.h>
-#include <string.h>
 
-#include <ini.h>
+#include <hdf5.h>
+#include <hdf5_hl.h>
 
-#include "config.h"
+#include <qdm.h>
 
 int
-qdm_config_handler(
-    void *user,
-    const char *section,
-    const char *name,
-    const char *value
+qdm_config_read(
+    qdm_config **cfg,
+    const char *file_path,
+    const char *group_path
 )
 {
-  qdm_config *cfg = (qdm_config *)user;
+  int status = 0;
 
-#define CMP(s, n) if (strcmp(section, #s) == 0 && strcmp(name, #n) == 0)
-#define CFG(s, n, t, d) CMP(s, n) { \
-  cfg->s##_##n = \
-    _Generic(((t)d), \
-      char *: strdup(value), \
-      size_t: strtoumax(value, NULL, 10), \
-      double: strtod(value, NULL) \
-    ); \
-  return 1; \
+  hid_t file_id;
+  hid_t group_id;
+
+  // FIXME: Check for negative return indicating failure to open.
+  file_id = H5Fopen(file_path, H5F_ACC_RDONLY, H5P_DEFAULT);
+  group_id = H5Gopen(file_id, group_path, H5P_DEFAULT);
+
+  // FIXME: Check for malloc failure.
+  qdm_config *config = malloc(sizeof(qdm_config));
+
+  // Initialize values
+#define READ(t, n) \
+  status = H5LTread_dataset_##t(group_id, #n, &config->n); \
+  if (status < 0) { \
+    goto cleanup; \
+  }
+
+#define READ_VECTOR(n) \
+  status = qdm_vector_hd5_read(group_id, #n, &config->n); \
+  if (status < 0) { \
+    goto cleanup; \
+  }
+
+  READ(int, rng_seed);
+
+  READ(int, acc_check);
+  READ(int, burn);
+  READ(int, iter);
+  READ(int, knot_try);
+  READ(int, spline_df);
+  READ(int, thin);
+
+  READ_VECTOR(months);
+  READ_VECTOR(knots);
+
+  READ_VECTOR(tau_highs);
+  READ_VECTOR(tau_lows);
+
+  READ(double, theta_min);
+  READ(double, theta_tune_sd);
+
+  READ(double, xi_high);
+  READ(double, xi_low);
+  READ(double, xi_prior_mean);
+  READ(double, xi_prior_var);
+  READ(double, xi_tune_sd);
+
+#undef READ_VECTOR
+#undef READ
+
+  *cfg = config;
+
+cleanup:
+  if (status < 0) {
+    free(config);
+    config = NULL;
+    *cfg = NULL;
+  }
+
+  H5Gclose(group_id);
+  H5Fclose(file_id);
+
+  return status;
 }
-#include "config.def"
-#undef CFG
-#undef CMP
-
-  return 0;
-}
-
-static void _qdm_config_fprint_str   (FILE *f, char *x ) { fprintf(f, "%s"   , x); }
-static void _qdm_config_fprint_size  (FILE *f, size_t x) { fprintf(f, "%zu"  , x); }
-static void _qdm_config_fprint_double(FILE *f, double x) { fprintf(f, "%.17g", x); }
 
 void
-qdm_config_fprint(FILE *f, qdm_config *cfg)
+qdm_config_fwrite(
+    FILE *f,
+    const qdm_config *cfg
+)
 {
-#define CFG(s, n, t, d) { \
-  fprintf(f, "%s_%s = ", #s, #n); \
-  _Generic(((t)d), \
-    char *: _qdm_config_fprint_str, \
-    size_t: _qdm_config_fprint_size, \
-    double: _qdm_config_fprint_double \
-  )(f, cfg->s##_##n); \
-  fprintf(f, "\n"); \
-}
-#include "config.def"
-#undef CFG
-}
+  const char *prefix = "  ";
 
-int
-qdm_config_new(FILE *f, qdm_config *cfg)
-{
-  qdm_config defaults = {
-#define CFG(s, n, t, d) d,
-#include "config.def"
-#undef CFG
-  };
-  *cfg = defaults;
+#define PRINT_INT(n) fprintf(f, "%s%s: %d\n", prefix, #n, cfg->n);
+#define PRINT_DOUBLE(n) fprintf(f, "%s%s: %f\n", prefix, #n, cfg->n);
+#define PRINT_VECTOR(n) \
+  fprintf(f, "%s%s:", prefix, #n); \
+  \
+  if (cfg->n != NULL) { \
+    fprintf(f, "\n"); \
+    for (size_t i = 0; i < cfg->n->size; i++) { \
+      fprintf(f, "%s  - %f\n", prefix, gsl_vector_get(cfg->n, i)); \
+    } \
+  } \
+  else { \
+    fprintf(f, " NULL\n"); \
+  }
 
-  return ini_parse_file(f, qdm_config_handler, cfg);
+  PRINT_INT(rng_seed);
+
+  PRINT_INT(acc_check);
+  PRINT_INT(burn);
+  PRINT_INT(iter);
+  PRINT_INT(knot_try);
+  PRINT_INT(spline_df);
+  PRINT_INT(thin);
+
+  PRINT_VECTOR(months);
+  PRINT_VECTOR(knots);
+
+  PRINT_VECTOR(tau_highs);
+  PRINT_VECTOR(tau_lows);
+
+  PRINT_DOUBLE(theta_min);
+  PRINT_DOUBLE(theta_tune_sd);
+
+  PRINT_DOUBLE(xi_high);
+  PRINT_DOUBLE(xi_low);
+  PRINT_DOUBLE(xi_prior_mean);
+  PRINT_DOUBLE(xi_prior_var);
+  PRINT_DOUBLE(xi_tune_sd);
+
+#undef PRINT_VECTOR
+#undef PRINT_DOUBLE
+#undef PRINT_INT
 }

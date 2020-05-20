@@ -1,10 +1,8 @@
 /* Functions for working with the HDF5 files. */
 
-#define _GNU_SOURCE // Required for asprintf.
-#include <stdio.h>
-#undef _GNU_SOURCE
-
+#include <limits.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <hdf5.h>
@@ -88,8 +86,8 @@ size_t
 qdm_data_model_selected(
     const qdm_data_model *records,
     size_t nrecords,
-    int (*select)(const qdm_data_model *record, void *arg),
-    void *arg
+    int (*select)(const qdm_data_model *record, const void *arg),
+    const void *arg
 )
 {
   size_t size = 0;
@@ -107,8 +105,8 @@ gsl_vector *
 qdm_data_model_value_vector(
     const qdm_data_model *records,
     size_t nrecords,
-    int (*select)(const qdm_data_model *record, void *arg),
-    void *arg
+    int (*select)(const qdm_data_model *record, const void *arg),
+    const void *arg
 )
 {
   size_t size = qdm_data_model_selected(records, nrecords, select, arg);
@@ -131,8 +129,8 @@ gsl_vector *
 qdm_data_model_year_vector(
     const qdm_data_model *records,
     size_t nrecords,
-    int (*select)(const qdm_data_model *record, void *arg),
-    void *arg
+    int (*select)(const qdm_data_model *record, const void *arg),
+    const void *arg
 )
 {
   size_t size = qdm_data_model_selected(records, nrecords, select, arg);
@@ -154,7 +152,7 @@ qdm_data_model_year_vector(
 int
 qdm_data_model_select_by_month(
     const qdm_data_model *record,
-    double *month
+    const double *month
 )
 {
   if (isnan(record->value)) {
@@ -168,6 +166,27 @@ qdm_data_model_select_by_month(
   return 0;
 }
 
+void
+qdm_data_intermediate_free(
+    qdm_intermediate_result *result
+)
+{
+  gsl_matrix_free(result->theta);
+  result->theta = NULL;
+
+  gsl_matrix_free(result->theta_star);
+  result->theta_star = NULL;
+
+  gsl_vector_free(result->ll);
+  result->ll = NULL;
+
+  gsl_vector_free(result->tau);
+  result->tau = NULL;
+
+  gsl_vector_free(result->xi);
+  result->xi = NULL;
+}
+
 int
 qdm_data_intermediate_result_write(
     hid_t id,
@@ -177,17 +196,15 @@ qdm_data_intermediate_result_write(
 {
   int status = 0;
 
-  char *group_path = NULL;
+  char group_name[PATH_MAX];
   hid_t group = -1;
 
-  status = asprintf(&group_path, "output/intermediate/iteration_%zu", iteration);
-  if (status < 0) {
-    goto cleanup;
-  }
+  snprintf(group_name, PATH_MAX, "intermediate/i%zu", iteration);
 
-  group = qdm_data_create_group(id, group_path);
+  group = qdm_data_create_group(id, group_name);
   if (group < 0) {
     status = group;
+
     goto cleanup;
   }
 
@@ -219,10 +236,6 @@ qdm_data_intermediate_result_write(
 cleanup:
   if (group >= 0) {
     H5Gclose(group);
-  }
-
-  if (group_path != NULL) {
-    free(group_path);
   }
 
   return status;

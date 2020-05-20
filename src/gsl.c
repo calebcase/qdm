@@ -7,6 +7,7 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_permutation.h>
+#include <gsl/gsl_sort_vector.h>
 #include <gsl/gsl_spmatrix.h>
 #include <gsl/gsl_statistics.h>
 #include <hdf5.h>
@@ -98,9 +99,11 @@ qdm_vector_csv_fread(FILE *stream)
 void
 qdm_matrix_csv_fwrite(FILE *f, gsl_matrix *m)
 {
-  for (size_t i = 0; i < m->size1; i++) {
-    gsl_vector_view row = gsl_matrix_row(m, i);
-    qdm_vector_csv_fwrite(f, &row.vector);
+  if (m != NULL) {
+    for (size_t i = 0; i < m->size1; i++) {
+      gsl_vector_view row = gsl_matrix_row(m, i);
+      qdm_vector_csv_fwrite(f, &row.vector);
+    }
   }
 }
 
@@ -145,6 +148,18 @@ cleanup:
   gsl_matrix_free(c);
 
   return status;
+}
+
+/* Create a sorted copy of the vector v. */
+gsl_vector *
+qdm_vector_sorted(const gsl_vector *v)
+{
+  gsl_vector *s = gsl_vector_alloc(v->size);
+
+  gsl_vector_memcpy(s, v);
+  gsl_sort_vector(s);
+
+  return s;
 }
 
 gsl_vector *
@@ -407,6 +422,48 @@ cleanup:
 }
 
 int
+qdm_vector_hd5_read(
+    hid_t id,
+    const char *name,
+    gsl_vector **v
+)
+{
+  int status = 0;
+
+  int rank = 0;
+
+  status = H5LTget_dataset_ndims(id, name, &rank);
+  if (status < 0) {
+    return status;
+  }
+
+  hsize_t dims[rank];
+
+  status = H5LTget_dataset_info(id, name, dims, NULL, NULL);
+  if (status < 0) {
+    return status;
+  }
+
+  size_t size = 1;
+  for (int i = 0; i < rank; i++) {
+    size *= dims[i];
+  }
+
+  gsl_vector *tmp = gsl_vector_alloc(size);
+
+  status = H5LTread_dataset_double(id, name, tmp->data);
+  if (status < 0) {
+    gsl_vector_free(tmp);
+
+    return status;
+  }
+
+  *v = tmp;
+
+  return status;
+}
+
+int
 qdm_vector_hd5_write(
     hid_t id,
     const char *name,
@@ -418,6 +475,11 @@ qdm_vector_hd5_write(
   hid_t datatype  = -1;
   hid_t dataspace = -1;
   hid_t dataset   = -1;
+  hid_t dcpl      = -1;
+
+  if (v == NULL) {
+    goto cleanup;
+  }
 
   datatype = H5Tcopy(H5T_NATIVE_DOUBLE);
 
@@ -435,7 +497,32 @@ qdm_vector_hd5_write(
     goto cleanup;
   }
 
-  dataset = H5Dcreate(id, name, datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  dcpl = H5Pcreate(H5P_DATASET_CREATE);
+  if (dcpl < 0) {
+    status = dcpl;
+
+    goto cleanup;
+  }
+
+  /* Only enable compression on larger vectors. */
+  /*
+  if (v->size > 1024) {
+    status = H5Pset_deflate(dcpl, 9);
+    if (status != 0) {
+      goto cleanup;
+    }
+
+    hsize_t chunk_dims[1] = {
+      v->size,
+    };
+    status = H5Pset_chunk(dcpl, 1, chunk_dims);
+    if (status != 0) {
+      goto cleanup;
+    }
+  }
+  */
+
+  dataset = H5Dcreate(id, name, datatype, dataspace, H5P_DEFAULT, dcpl, H5P_DEFAULT);
   if (dataset < 0) {
     status = dataset;
     goto cleanup;
@@ -447,6 +534,10 @@ qdm_vector_hd5_write(
   }
 
 cleanup: 
+  if (dcpl >= 0) {
+    H5Pclose(dcpl);
+  }
+
   if (dataset >= 0) {
     H5Dclose(dataset);
   }
@@ -465,6 +556,53 @@ cleanup:
 }
 
 int
+qdm_matrix_hd5_read(
+    hid_t id,
+    const char *name,
+    gsl_matrix **m
+)
+{
+  int status = 0;
+
+  int rank = 0;
+
+  status = H5LTget_dataset_ndims(id, name, &rank);
+  if (status < 0) {
+    return status;
+  }
+
+  if (rank < 2) {
+    return -1;
+  }
+
+  hsize_t dims[rank];
+
+  status = H5LTget_dataset_info(id, name, dims, NULL, NULL);
+  if (status < 0) {
+    return status;
+  }
+
+  size_t size1 = dims[0];
+  size_t size2 = 1;
+  for (int i = 1; i < rank; i++) {
+    size2 *= dims[i];
+  }
+
+  gsl_matrix *tmp = gsl_matrix_alloc(size1, size2);
+
+  status = H5LTread_dataset_double(id, name, tmp->data);
+  if (status < 0) {
+    gsl_matrix_free(tmp);
+
+    return status;
+  }
+
+  *m = tmp;
+
+  return status;
+}
+
+int
 qdm_matrix_hd5_write(
     hid_t id,
     const char *name,
@@ -476,6 +614,11 @@ qdm_matrix_hd5_write(
   hid_t datatype  = -1;
   hid_t dataspace = -1;
   hid_t dataset   = -1;
+  hid_t dcpl      = -1;
+
+  if (m == NULL) {
+    goto cleanup;
+  }
 
   datatype = H5Tcopy(H5T_NATIVE_DOUBLE);
 
@@ -491,12 +634,40 @@ qdm_matrix_hd5_write(
   dataspace = H5Screate_simple(2, dims, NULL);
   if (dataspace < 0) {
     status = dataspace;
+
     goto cleanup;
   }
 
-  dataset = H5Dcreate(id, name, datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  dcpl = H5Pcreate(H5P_DATASET_CREATE);
+  if (dcpl < 0) {
+    status = dcpl;
+
+    goto cleanup;
+  }
+
+  /* Only enable compression on larger matrices. */
+  /*
+  if (m->size1 * m->size2 > 1024) {
+    status = H5Pset_deflate(dcpl, 9);
+    if (status != 0) {
+      goto cleanup;
+    }
+
+    hsize_t chunk_dims[2] = {
+      m->size1,
+      m->size2
+    };
+    status = H5Pset_chunk(dcpl, 2, chunk_dims);
+    if (status != 0) {
+      goto cleanup;
+    }
+  }
+  */
+
+  dataset = H5Dcreate(id, name, datatype, dataspace, H5P_DEFAULT, dcpl, H5P_DEFAULT);
   if (dataset < 0) {
     status = dataset;
+
     goto cleanup;
   }
 
@@ -506,6 +677,10 @@ qdm_matrix_hd5_write(
   }
 
 cleanup:
+  if (dcpl >= 0) {
+    H5Pclose(dcpl);
+  }
+
   if (dataset >= 0) {
     H5Dclose(dataset);
   }
@@ -521,4 +696,35 @@ cleanup:
   H5Oflush(id);
 
   return status;
+}
+
+gsl_vector *
+qdm_matrix_filter(
+    const gsl_matrix *m,
+    size_t needle_column,
+    double needle_value,
+    size_t select_column
+)
+{
+  size_t size = 0;
+
+  for (size_t i = 0; i < m->size1; i++) {
+    if (gsl_matrix_get(m, i, needle_column) == needle_value) {
+      size++;
+    }
+  }
+
+  gsl_vector *v = gsl_vector_alloc(size);
+
+  size_t j = 0;
+  for (size_t i = 0; i < m->size1; i++) {
+    double select_value = gsl_matrix_get(m, i, select_column);
+
+    if (gsl_matrix_get(m, i, needle_column) == needle_value) {
+      gsl_vector_set(v, j, select_value);
+      j++;
+    }
+  }
+
+  return v; 
 }

@@ -8,6 +8,7 @@ RUN apt-get -qy install \
       build-essential \
       cmake \
       curl \
+      gfortran \
       git \
       meson \
       ninja-build \
@@ -15,7 +16,8 @@ RUN apt-get -qy install \
 
 RUN apt-get -qy install \
       libargtable2-dev \
-      libhdf5-dev
+      libhdf5-dev \
+      libopenblas-dev
 
 # Build and install GSL
 
@@ -48,24 +50,9 @@ RUN mkdir build \
  && ldconfig
 COPY osqp.pc /usr/local/lib/pkgconfig/osqp.pc
 
-# Build and install inih
-
-WORKDIR /src/github.com/benhoyt
-RUN git clone \
-      --depth=1 \
-      --single-branch \
-      --branch r48 \
-      https://github.com/benhoyt/inih
-
-WORKDIR /src/github.com/benhoyt/inih
-RUN mkdir build \
- && meson build \
- && ninja -C build \
- && ninja -C build install \
- && ldconfig
-
 # Build and install QDM
 
+RUN sed -i 's/-lgslcblas/-lopenblas/' /usr/local/lib/pkgconfig/gsl.pc
 COPY . /src/github.com/calebcase/qdm
 WORKDIR /src/github.com/calebcase/qdm
 
@@ -73,7 +60,7 @@ RUN rm -fr build \
  && mkdir build \
  && meson build \
       --prefix=/usr/local \
-      --buildtype=release \
+#      --buildtype=release \
  && ninja -C build \
  && ninja -C build test \
  && ninja -C build install \
