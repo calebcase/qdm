@@ -31,6 +31,18 @@ qdm_vector_seq(double from, double to, double by)
   return s;
 }
 
+void
+qdm_vector_set_seq(gsl_vector *v, double from, double to)
+{
+  double by = (to - from) / (double)(v->size - 1);
+
+  double value = from;
+  for (size_t i = 0; i < v->size; i++) {
+    gsl_vector_set(v, i, value);
+    value += by;
+  }
+}
+
 size_t
 qdm_vector_search(const gsl_vector *v, double needle)
 {
@@ -49,7 +61,7 @@ qdm_vector_search(const gsl_vector *v, double needle)
 }
 
 void
-qdm_vector_csv_fwrite(FILE *f, gsl_vector *v)
+qdm_vector_csv_fwrite(FILE *f, const gsl_vector *v)
 {
   for (size_t i = 0; i < v->size; i++) {
     fprintf(f, "%.17g", gsl_vector_get(v, i));
@@ -97,11 +109,11 @@ qdm_vector_csv_fread(FILE *stream)
 }
 
 void
-qdm_matrix_csv_fwrite(FILE *f, gsl_matrix *m)
+qdm_matrix_csv_fwrite(FILE *f, const gsl_matrix *m)
 {
   if (m != NULL) {
     for (size_t i = 0; i < m->size1; i++) {
-      gsl_vector_view row = gsl_matrix_row(m, i);
+      gsl_vector_const_view row = gsl_matrix_const_row(m, i);
       qdm_vector_csv_fwrite(f, &row.vector);
     }
   }
@@ -165,18 +177,21 @@ qdm_vector_sorted(const gsl_vector *v)
 gsl_vector *
 qdm_vector_quantile(gsl_vector *data, gsl_vector *probs)
 {
+  gsl_vector *sorted = qdm_vector_sorted(data);
   gsl_vector *quantiles = gsl_vector_alloc(probs->size);
 
   for (size_t i = 0; i < probs->size; i++) {
     double q = gsl_stats_quantile_from_sorted_data(
-        data->data,
-        data->stride,
-        data->size,
+        sorted->data,
+        sorted->stride,
+        sorted->size,
         gsl_vector_get(probs, i)
     );
 
     gsl_vector_set(quantiles, i, q);
   }
+
+  free(sorted);
 
   return quantiles;
 }

@@ -11,7 +11,12 @@
 #include "qdm.h"
 
 void
-qdm_mspline_vector(gsl_vector *result, const double tau, const size_t spline_df, const gsl_vector *knots)
+qdm_mspline_vector(
+    gsl_vector *result,
+    const double tau,
+    const size_t spline_df,
+    const gsl_vector *knots
+)
 {
   size_t bin = qdm_vector_search(knots, tau);
 

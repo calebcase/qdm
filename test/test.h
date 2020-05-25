@@ -24,17 +24,17 @@
     munit_logf((l), #m " (%zu, %zu)", (m)->size1, (m)->size2); \
   } while (0)
 
-#define munit_vector_equal(a, b, prec)                   \
-  do {                                                   \
-    munit_assert_size((a)->size, ==, (b)->size);         \
-                                                         \
-    for (size_t i = 0; i < (a)->size1; i++) {            \
-      double e = gsl_vector_get((a), i, j);              \
-      double r = gsl_vector_get((b), i, j);              \
-                                                         \
-      munit_logf(MUNIT_LOG_DEBUG, "(%zu, %zu)", i, j);   \
-      munit_assert_double_equal(e, r, prec);             \
-    }                                                    \
+#define munit_vector_equal(a, b, prec)           \
+  do {                                           \
+    munit_assert_size((a)->size, ==, (b)->size); \
+                                                 \
+    for (size_t i = 0; i < (a)->size; i++) {     \
+      double e = gsl_vector_get((a), i);         \
+      double r = gsl_vector_get((b), i);         \
+                                                 \
+      munit_logf(MUNIT_LOG_DEBUG, "(%zu)", i);   \
+      munit_assert_double_equal(e, r, prec);     \
+    }                                            \
   } while (0)
 
 #define munit_matrix_equal(a, b, prec)                   \

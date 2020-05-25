@@ -4,6 +4,8 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_vector.h>
 
+#include <qdm/tau.h>
+
 int
 qdm_find_tau(
     double *result,
@@ -48,6 +50,20 @@ qdm_logl_2(
 
     const gsl_matrix *theta,
     const gsl_vector *knots
+);
+
+void
+qdm_logl_3(
+    double *log_likelihood,
+    double *tau,
+
+    double x,
+    double y,
+
+    const qdm_tau *t,
+    const gsl_vector *xi,
+
+    const gsl_matrix *theta
 );
 
 #endif /* QDM_LOGL_H */

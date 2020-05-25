@@ -2,7 +2,7 @@ c_args = [
     '-DHAVE_INLINE',
     '-g3',
     '-Wshadow',
-    '-pg',
+    #'-pg',
 ]
 
 # libqdm
@@ -10,12 +10,17 @@ c_args = [
 libqdm_src = [
   'config.c',
   'data.c',
+  'evaluation.c',
   'gsl.c',
+  'ijk.c',
   'ispline.c',
   'knots.c',
   'logl.c',
+  'mcmc.c',
   'mspline.c',
+  'parameters.c',
   'state.c',
+  'tau.c',
   'theta.c',
 ]
 
@@ -58,5 +63,6 @@ executable('qdm', qdm_src,
   # Most of them are dependencies of hdf5 that are not handled properly with
   # pkg-config. There is a warning during compilation about dlopen, but as far
   # as I can tell the code path for dlopen is never called.
-  link_args           : ['-static', '-pthread', '-laec', '-lsz', '-lz', '-ldl', '-pg'],
+  link_args           : ['-static', '-pthread', '-laec', '-lsz', '-lz', '-ldl'],
+  #link_args           : ['-static', '-pthread', '-laec', '-lsz', '-lz', '-ldl', '-pg'],
 )

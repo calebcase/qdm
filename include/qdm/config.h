@@ -7,8 +7,13 @@ typedef struct {
   int rng_seed;
 
   int acc_check;
-  int burn;
-  int iter;
+
+  int burn_discovery;
+  int iter_discovery;
+
+  int burn_analysis;
+  int iter_analysis;
+
   int knot_try;
   int spline_df;
   int thin;

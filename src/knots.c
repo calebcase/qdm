@@ -92,6 +92,8 @@ int
 qdm_knots_optimize(
   gsl_vector *result,
 
+  gsl_rng *rng,
+
   gsl_vector *sorted_data,
   gsl_vector *middle,
   gsl_vector *possible_knots,
@@ -108,7 +110,7 @@ qdm_knots_optimize(
 
   for (size_t i = 0; i < iterate_n; i++) {
     status = gsl_ran_choose(
-        qdm_state->rng,
+        rng,
         interior_knots->data,
         interior_knots->size,
         possible_knots->data,
