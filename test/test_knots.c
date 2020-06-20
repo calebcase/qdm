@@ -1,3 +1,4 @@
+#include <gsl/gsl_rng.h>
 #include <gsl/gsl_sort_vector.h>
 #include <munit.h>
 
@@ -1568,8 +1569,14 @@ test_qdm_knots_optimize(
   munit_log_size(MUNIT_LOG_DEBUG, iterate_n);
   munit_log_size(MUNIT_LOG_DEBUG, spline_df);
 
+  gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
+  gsl_rng_set(rng, 100);
+
   status = qdm_knots_optimize(
       result,
+
+      rng,
+
       &sorted_data.vector,
       middle,
       possible_knots,

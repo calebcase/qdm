@@ -10,17 +10,20 @@
 gsl_vector *
 qdm_vector_seq(double from, double to, double by);
 
+void
+qdm_vector_set_seq(gsl_vector *v, double from, double to);
+
 size_t
 qdm_vector_search(const gsl_vector *v, double needle);
 
 void
-qdm_vector_csv_fwrite(FILE *f, gsl_vector *v);
+qdm_vector_csv_fwrite(FILE *f, const gsl_vector *v);
 
 gsl_vector *
 qdm_vector_csv_fread(FILE *stream);
 
 void
-qdm_matrix_csv_fwrite(FILE *f, gsl_matrix *m);
+qdm_matrix_csv_fwrite(FILE *f, const gsl_matrix *m);
 
 int
 qdm_matrix_tmm(gsl_matrix *m, gsl_matrix *result);

@@ -52,7 +52,8 @@ COPY osqp.pc /usr/local/lib/pkgconfig/osqp.pc
 
 # Build and install QDM
 
-RUN sed -i 's/-lgslcblas/-lopenblas/' /usr/local/lib/pkgconfig/gsl.pc
+#RUN sed -i 's/-lgslcblas/-lopenblas/' /usr/local/lib/pkgconfig/gsl.pc
+
 COPY . /src/github.com/calebcase/qdm
 WORKDIR /src/github.com/calebcase/qdm
 
@@ -60,13 +61,15 @@ RUN rm -fr build \
  && mkdir build \
  && meson build \
       --prefix=/usr/local \
-#      --buildtype=release \
- && ninja -C build \
- && ninja -C build test \
- && ninja -C build install \
+      --buildtype=debug
+
+RUN ninja -C build
+RUN ninja -C build test \
+ || (cat /src/github.com/calebcase/qdm/build/meson-logs/testlog.txt && false)
+RUN ninja -C build install \
  && ldconfig
 
-FROM scratch
-WORKDIR /data
-COPY --from=builder /usr/local/bin/qdm /usr/local/bin/qdm
-ENTRYPOINT ["/usr/local/bin/qdm"]
+#FROM scratch
+#WORKDIR /data
+#COPY --from=builder /usr/local/bin/qdm /usr/local/bin/qdm
+#ENTRYPOINT ["/usr/local/bin/qdm"]

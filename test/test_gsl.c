@@ -40,6 +40,60 @@ test_qdm_vector_seq(
 
 static
 MunitResult
+test_qdm_vector_set_seq(
+    MUNIT_UNUSED const MunitParameter params[],
+    MUNIT_UNUSED void* fixture
+)
+{
+  gsl_vector *seq = gsl_vector_alloc(10);
+
+  qdm_vector_set_seq(seq, 0, 9);
+  
+  for (size_t i = 0; i < seq->size; i++) {
+    double expecting = (double)i;
+    double found = gsl_vector_get(seq, i);
+
+    munit_logf(MUNIT_LOG_DEBUG, "e %.17g f %.17g", expecting, found);
+    munit_assert_double_equal(expecting, found, 3);
+  }
+
+  qdm_vector_set_seq(seq, 9, 0);
+  
+  for (size_t i = 0; i < seq->size; i--) {
+    double expecting = (double)(9 - i);
+    double found = gsl_vector_get(seq, i);
+
+    munit_logf(MUNIT_LOG_DEBUG, "e %.17g f %.17g", expecting, found);
+    munit_assert_double_equal(expecting, found, 3);
+  }
+
+  qdm_vector_set_seq(seq, 0, 1);
+  double data[10] = {
+    0.0,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+  };
+
+  for (size_t i = 0; i < seq->size; i--) {
+    double expecting = data[i];
+    double found = gsl_vector_get(seq, i);
+
+    munit_logf(MUNIT_LOG_DEBUG, "e %.17g f %.17g", expecting, found);
+    munit_assert_double_equal(expecting, found, 3);
+  }
+
+  return MUNIT_OK;
+}
+
+static
+MunitResult
 test_qdm_matrix_det_tmm(
     MUNIT_UNUSED const MunitParameter params[],
     MUNIT_UNUSED void* fixture
@@ -424,6 +478,14 @@ MunitTest tests_gsl[] = {
     NULL                       , // tear_down
     MUNIT_TEST_OPTION_NONE     , // options
     test_params_qdm_vector_seq , // parameters
+  },
+  {
+    "/qdm_vector_set_seq",   // name
+    test_qdm_vector_set_seq, // test
+    NULL,                    // setup
+    NULL,                    // tear_down
+    MUNIT_TEST_OPTION_NONE,  // options
+    NULL,                    // parameters
   },
   {
     "/qdm_matrix_det_tmm"   , // name

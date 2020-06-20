@@ -43,8 +43,13 @@ qdm_config_read(
   READ(int, rng_seed);
 
   READ(int, acc_check);
-  READ(int, burn);
-  READ(int, iter);
+
+  READ(int, burn_discovery);
+  READ(int, iter_discovery);
+
+  READ(int, burn_analysis);
+  READ(int, iter_analysis);
+
   READ(int, knot_try);
   READ(int, spline_df);
   READ(int, thin);
@@ -108,8 +113,13 @@ qdm_config_fwrite(
   PRINT_INT(rng_seed);
 
   PRINT_INT(acc_check);
-  PRINT_INT(burn);
-  PRINT_INT(iter);
+
+  PRINT_INT(burn_discovery);
+  PRINT_INT(iter_discovery);
+
+  PRINT_INT(burn_analysis);
+  PRINT_INT(iter_analysis);
+
   PRINT_INT(knot_try);
   PRINT_INT(spline_df);
   PRINT_INT(thin);

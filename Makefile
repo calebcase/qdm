@@ -10,3 +10,7 @@ qdm: image
 	docker create -it --name qdm qdm
 	docker cp qdm:/usr/local/bin/qdm qdm
 	docker rm -f qdm
+
+.PHONY: subprojects
+subprojects:
+	meson subprojects download

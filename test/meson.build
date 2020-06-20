@@ -16,7 +16,6 @@ test('munit', munit_exe,
     'GSL_RNG_SEED=100',
   ],
   args: [
-    '--log-visible', 'debug',
-    '--show-stderr',
+    '--color', 'always',
   ],
 )

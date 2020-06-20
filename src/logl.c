@@ -293,3 +293,67 @@ qdm_logl_2(
 
   return status;
 }
+
+void
+qdm_logl_3(
+    double *log_likelihood,
+    double *tau,
+
+    double x,
+    double y,
+
+    const qdm_tau *t,
+    const gsl_vector *xi,
+
+    const gsl_matrix *theta
+)
+{
+  double xi_intercept_data[2] = {1, x};
+  gsl_vector_view xi_intercept = gsl_vector_view_array(xi_intercept_data, 2);
+
+  double mmm_data[theta->size2];
+  gsl_vector_view mmm = gsl_vector_view_array(mmm_data, theta->size2);
+
+  gsl_blas_dgemv(CblasTrans, 1, theta, &xi_intercept.vector, 0, &mmm.vector);
+
+  double low_threshold = qdm_tau_ispline_mmm(t, t->low, &mmm.vector);
+  double high_threshold = qdm_tau_ispline_mmm(t, t->high, &mmm.vector);
+
+  /*
+  fprintf(stderr, "x    : %f\n", x);
+  fprintf(stderr, "y    : %f\n", y);
+
+  fprintf(stderr, "tl   : %f\n", t->low);
+  fprintf(stderr, "th   : %f\n", t->high);
+
+  fprintf(stderr, "low  : %f\n", low_threshold);
+  fprintf(stderr, "high : %f\n", high_threshold);
+
+  qdm_matrix_csv_fwrite(stderr, theta);
+  */
+
+  double xi_low = gsl_vector_get(xi, 0);
+  double xi_high = gsl_vector_get(xi, 1);
+
+  if (y <= low_threshold) {
+    double sigma_low = qdm_tau_mspline_mmm(t, t->low, &mmm.vector) * t->low;
+    double z = low_threshold - y;
+
+    *log_likelihood = log(t->low / sigma_low * pow(1 + (xi_low * z) / sigma_low, -1 / xi_low - 1));
+    *tau = (1 - (1 - pow(1 + xi_low * z / sigma_low, -1 / xi_low))) * t->low;
+  } else if (y >= high_threshold) {
+    double sigma_high = qdm_tau_mspline_mmm(t, t->high, &mmm.vector) * (1 - t->high);
+    double z = y - high_threshold;
+
+    *log_likelihood = log((1 - t->high) / sigma_high * pow(1 + (xi_high * z) / sigma_high, -1 / xi_high - 1));
+    *tau = (1 - pow(1 + xi_high * z / sigma_high, -1 / xi_high)) * (1 - t->high) + t->high;
+  } else {
+    *tau = qdm_tau_find(t, y, &mmm.vector);
+    *log_likelihood = log(1 / qdm_tau_mspline_mmm(t, *tau, &mmm.vector));
+  }
+
+  /*
+  fprintf(stderr, "ll   : %f\n", *log_likelihood);
+  fprintf(stderr, "tau  : %f\n", *tau);
+  */
+}
