@@ -6,6 +6,8 @@
 #include <gsl/gsl_vector.h>
 
 typedef struct {
+  bool use_table;
+
   double low;
   double high;
 
@@ -15,12 +17,12 @@ typedef struct {
   gsl_vector *reset;
   gsl_matrix *ispline_table;
   gsl_matrix *mspline_table;
-
-  bool use_table;
 } qdm_tau;
 
 qdm_tau *
 qdm_tau_alloc(
+    int use_table,
+
     double low,
     double high,
 

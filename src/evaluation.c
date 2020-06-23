@@ -32,8 +32,6 @@ qdm_evaluation_new(const qdm_parameters *parameters)
 
   e->m_knots = NULL;
 
-  e->bias_corrected = NULL;
-
   e->elapsed = 0;
 
   return e;
@@ -45,9 +43,6 @@ qdm_evaluation_free(qdm_evaluation *e)
   if (e == NULL) {
     return;
   }
-
-  gsl_matrix_free(e->bias_corrected);
-  e->bias_corrected = NULL;
 
   gsl_vector_free(e->m_knots);
   e->m_knots = NULL;
@@ -146,16 +141,18 @@ qdm_evaluation_write(
   WRITE_DOUBLE(dic);
   WRITE_DOUBLE(pd);
 
-  mcmc_group = qdm_data_create_group(id, "mcmc");
-  if (mcmc_group < 0) {
-    status = mcmc_group;
+  if (e->parameters.debug == 1) {
+    mcmc_group = qdm_data_create_group(id, "mcmc");
+    if (mcmc_group < 0) {
+      status = mcmc_group;
 
-    goto cleanup;
-  }
+      goto cleanup;
+    }
 
-  status = qdm_mcmc_write(mcmc_group, e->mcmc);
-  if (status != 0) {
-    goto cleanup;
+    status = qdm_mcmc_write(mcmc_group, e->mcmc);
+    if (status != 0) {
+      goto cleanup;
+    }
   }
 
   status = qdm_matrix_hd5_write(id, "theta_bar", e->theta_bar);
@@ -177,11 +174,6 @@ qdm_evaluation_write(
   }
 
   status = qdm_vector_hd5_write(id, "m_knots", e->m_knots);
-  if (status != 0) {
-    goto cleanup;
-  }
-
-  status = qdm_matrix_hd5_write(id, "bias_corrected", e->bias_corrected);
   if (status != 0) {
     goto cleanup;
   }
@@ -308,7 +300,13 @@ qdm_evaluation_run(
     size_t m = e->parameters.spline_df + e->parameters.knot;
 
     m_knots = qdm_knots_vector(e->parameters.spline_df, interior_knots);
-    e->t = qdm_tau_alloc(e->parameters.tau_low, e->parameters.tau_high, e->parameters.spline_df, m_knots);
+    e->t = qdm_tau_alloc(
+        e->parameters.tau_table,
+        e->parameters.tau_low,
+        e->parameters.tau_high,
+        e->parameters.spline_df,
+        m_knots
+    );
 
     gsl_vector *middle = qdm_vector_seq(e->parameters.tau_low, e->parameters.tau_high, 0.01);
 

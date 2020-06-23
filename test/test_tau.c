@@ -24,7 +24,10 @@ test_qdm_tau_find(
   gsl_vector_view knots = gsl_vector_view_array(knots_data, sizeof(knots_data) / sizeof(double));
   munit_log_vector_dim(MUNIT_LOG_DEBUG, &knots.vector);
 
-  qdm_tau *t = qdm_tau_alloc(tau_low, tau_high, spline_df, &knots.vector);
+  int with_table = 1;
+  int no_table = 0;
+  qdm_tau *t_wt = qdm_tau_alloc(with_table, tau_low, tau_high, spline_df, &knots.vector);
+  qdm_tau *t_nt = qdm_tau_alloc(no_table, tau_low, tau_high, spline_df, &knots.vector);
 
   double reset_data[] = {
     0.010000000000000000,
@@ -59,7 +62,7 @@ test_qdm_tau_find(
     0.989999999999999991,
   };
   gsl_vector_view reset = gsl_vector_view_array(reset_data, sizeof(reset_data) / sizeof(double));
-  munit_vector_equal(&reset.vector, t->reset, 3);
+  munit_vector_equal(&reset.vector, t_wt->reset, 3);
 
   double v = 13.2690000000000001;
 
@@ -74,13 +77,16 @@ test_qdm_tau_find(
   gsl_vector_view mmm = gsl_vector_view_array(mmm_data, sizeof(mmm_data) / sizeof(double));
   munit_log_vector_dim(MUNIT_LOG_DEBUG, &mmm.vector);
 
-  double result = qdm_tau_find(t, v, &mmm.vector);
+  double result_wt = qdm_tau_find(t_wt, v, &mmm.vector);
+  double result_nt = qdm_tau_find(t_nt, v, &mmm.vector);
 
   double expected = 0.023441441362023058;
 
-  munit_assert_double_equal(expected, result, 5);
+  munit_assert_double_equal(expected, result_wt, 5);
+  munit_assert_double_equal(expected, result_nt, 5);
 
-  qdm_tau_free(t);
+  qdm_tau_free(t_wt);
+  qdm_tau_free(t_nt);
 
   return MUNIT_OK;
 }

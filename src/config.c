@@ -69,6 +69,9 @@ qdm_config_read(
   READ(double, xi_prior_var);
   READ(double, xi_tune_sd);
 
+  READ(int, debug);
+  READ(int, tau_table);
+
 #undef READ_VECTOR
 #undef READ
 
@@ -138,6 +141,9 @@ qdm_config_fwrite(
   PRINT_DOUBLE(xi_prior_mean);
   PRINT_DOUBLE(xi_prior_var);
   PRINT_DOUBLE(xi_tune_sd);
+
+  PRINT_INT(debug);
+  PRINT_INT(tau_table);
 
 #undef PRINT_VECTOR
 #undef PRINT_DOUBLE

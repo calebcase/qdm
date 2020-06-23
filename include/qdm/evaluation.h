@@ -32,8 +32,6 @@ typedef struct {
 
   gsl_vector *m_knots;
 
-  gsl_matrix *bias_corrected;
-
   // Performance Metrics
   double elapsed;
 } qdm_evaluation;

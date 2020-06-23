@@ -51,6 +51,13 @@ qdm_tau_table_setup(
     qdm_tau *t
 )
 {
+  if (!t->use_table) {
+    t->ispline_table = NULL;
+    t->mspline_table = NULL;
+
+    return;
+  }
+
   t->ispline_table = gsl_matrix_alloc(TAU_TABLE_SIZE, (t->knots->size - t->spline_df) + 1);
   t->mspline_table = gsl_matrix_alloc(TAU_TABLE_SIZE, (t->knots->size - t->spline_df) + 1);
 
@@ -79,6 +86,8 @@ qdm_tau_table_setup(
 
 qdm_tau *
 qdm_tau_alloc(
+    int use_table,
+
     double low,
     double high,
 
@@ -88,6 +97,12 @@ qdm_tau_alloc(
 {
   qdm_tau *t = malloc(sizeof(qdm_tau));
 
+  if (use_table == 1) {
+    t->use_table = true;
+  } else {
+    t->use_table = false;
+  }
+
   t->low = low;
   t->high = high;
 
@@ -96,8 +111,6 @@ qdm_tau_alloc(
 
   qdm_tau_reset_setup(t);
   qdm_tau_table_setup(t);
-
-  t->use_table = false;
 
   return t;
 }
@@ -110,6 +123,8 @@ qdm_tau_free(
   if (t == NULL) {
     return;
   }
+
+  t->use_table = 0;
 
   t->low = 0;
   t->high = 0;

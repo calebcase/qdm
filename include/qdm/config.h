@@ -32,6 +32,9 @@ typedef struct {
   double xi_prior_mean;
   double xi_prior_var;
   double xi_tune_sd;
+
+  int debug;
+  int tau_table;
 } qdm_config;
 
 int
