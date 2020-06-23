@@ -19,6 +19,8 @@ typedef struct {
   double pd;
 
   // Results
+  qdm_tau *t;
+
   qdm_mcmc *mcmc;
 
   gsl_matrix *theta_bar;

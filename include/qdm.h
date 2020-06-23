@@ -2,6 +2,7 @@
 #define QDM_H 1
 
 #include <qdm/config.h>
+#include <qdm/bias.h>
 #include <qdm/data.h>
 #include <qdm/evaluation.h>
 #include <qdm/gsl.h>

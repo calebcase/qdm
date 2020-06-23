@@ -100,7 +100,7 @@ phase_run(
         {
           char group_name[PATH_MAX];
 
-          snprintf(group_name, PATH_MAX, "/output/%s/m%1zu/discovery/e%0*zu", phase_name, months_idx, (int)log10(evaluations_expected), evaluations_done);
+          snprintf(group_name, PATH_MAX, "/output/m%02d/%s/discovery/e%0*zu", (int)parameters.month, phase_name, (int)log10(evaluations_expected), evaluations_done);
 
           hid_t group = qdm_data_create_group(output, group_name);
           if (group < 0) {
@@ -183,7 +183,7 @@ phase_run(
     {
       char group_name[PATH_MAX];
 
-      snprintf(group_name, PATH_MAX, "/output/%s/m%1zu/analysis", phase_name, months_idx);
+      snprintf(group_name, PATH_MAX, "/output/m%02d/%s/analysis", (int)parameters.month, phase_name);
 
       hid_t group = qdm_data_create_group(output, group_name);
       if (group < 0) {
@@ -392,174 +392,33 @@ main(int argc, char **argv)
       goto cleanup;
     }
 
-    /*
-    const char *phase_name = "phase1";
-
-    qdm_evaluation *best = NULL;
-
-    size_t evaluations_expected = cfg->knots->size * cfg->tau_highs->size * cfg->tau_lows->size;
-    size_t evaluations_done = 0;
-    double evaluations_elapsed = 0;
-
-    for (size_t knots_idx = 0; knots_idx < cfg->knots->size; knots_idx++) {
-      for (size_t tau_highs_idx = 0; tau_highs_idx < cfg->tau_highs->size; tau_highs_idx++) {
-        for (size_t tau_lows_idx = 0; tau_lows_idx < cfg->tau_lows->size; tau_lows_idx++) {
-          qdm_parameters parameters = {
-            .acc_check = cfg->acc_check,
-            .burn = cfg->burn_discovery,
-            .iter = cfg->iter_discovery,
-            .knot_try = cfg->knot_try,
-            .spline_df = cfg->spline_df,
-            .thin = cfg->thin,
-
-            .month = gsl_vector_get(cfg->months, months_idx),
-            .knot = gsl_vector_get(cfg->knots, knots_idx),
-            .tau_high = gsl_vector_get(cfg->tau_highs, tau_highs_idx),
-            .tau_low = gsl_vector_get(cfg->tau_lows, tau_lows_idx),
-
-            .theta_min = cfg->theta_min,
-            .theta_tune_sd = cfg->theta_tune_sd,
-
-            .xi_high = cfg->xi_high,
-            .xi_low = cfg->xi_low,
-            .xi_prior_mean = cfg->xi_prior_mean,
-            .xi_prior_var = cfg->xi_prior_var,
-            .xi_tune_sd = cfg->xi_tune_sd,
-
-            .truncate = false,
-          };
-
-          fprintf(stderr, "parameters:\n");
-          qdm_parameters_fprint(stderr, &parameters);
-
-          qdm_evaluation *evaluation = qdm_evaluation_new(&parameters);
-
-          status = qdm_evaluation_run(evaluation, future, FUTURE_YEAR, FUTURE_MONTH, FUTURE_VALUE);
-          if (status != 0) {
-            goto cleanup;
-          }
-
-          evaluations_done += 1;
-          evaluations_elapsed += evaluation->elapsed;
-
-          fprintf(stderr, "evaluation[%zu/%zu]:\n", evaluations_done, evaluations_expected);
-          qdm_evaluation_fprint(stderr, evaluation);
-
-          double spe = evaluations_elapsed / (double)evaluations_done;
-          double rem = (double)(evaluations_expected - evaluations_done);
-          double eta = rem * spe;
-          fprintf(stderr, "eta: %f\n", eta);
-
-          {
-            char group_name[PATH_MAX];
-
-            snprintf(group_name, PATH_MAX, "/output/%s/discovery/e%0*zu", phase_name, (int)log10(evaluations_expected), evaluations_done);
-
-            hid_t group = qdm_data_create_group(output, group_name);
-            if (group < 0) {
-              status = group;
-              goto cleanup;
-            }
-
-            status = qdm_evaluation_write(group, evaluation);
-            if (status != 0) {
-              goto cleanup;
-            }
-
-            H5Gclose(group);
-
-            status = H5Fflush(output, H5F_SCOPE_GLOBAL);
-            if (status != 0) {
-              goto cleanup;
-            }
-          }
-
-          if (best == NULL) {
-            best = evaluation;
-            evaluation = NULL;
-          }
-          else if (evaluation->waic < best->waic) {
-            fprintf(stderr, "Found a better evaluation %f < %f\n", evaluation->waic, best->waic);
-
-            qdm_evaluation_free(best);
-            best = evaluation;
-            evaluation = NULL;
-          }
-
-          qdm_evaluation_free(evaluation);
-        }
-      }
-    }
-
-    fprintf(stderr, "Best Evaluation:\n");
-    qdm_evaluation_fprint(stderr, best);
-
+    /* Bias Correction */
     {
-      qdm_parameters parameters = {
-        .acc_check = cfg->acc_check,
-        .burn = cfg->burn_analysis,
-        .iter = cfg->iter_analysis,
-        .knot_try = cfg->knot_try,
-        .spline_df = cfg->spline_df,
-        .thin = cfg->thin,
+      double month = gsl_vector_get(cfg->months, months_idx);
 
-        .month = gsl_vector_get(cfg->months, months_idx),
-        .knot = best->parameters.knot,
-        .tau_high = best->parameters.tau_high,
-        .tau_low = best->parameters.tau_low,
+      gsl_vector *years = qdm_matrix_filter(future, FUTURE_MONTH, month, FUTURE_YEAR);
+      gsl_vector *days = qdm_matrix_filter(future, FUTURE_MONTH, month, FUTURE_DAY);
+      gsl_vector *y = qdm_matrix_filter(future, FUTURE_MONTH, month, FUTURE_VALUE);
 
-        .theta_min = cfg->theta_min,
-        .theta_tune_sd = cfg->theta_tune_sd,
+      gsl_matrix *bc = qdm_bias_correct(years, month, days, y, p1e, p2e, p3e);
 
-        .xi_high = cfg->xi_high,
-        .xi_low = cfg->xi_low,
-        .xi_prior_mean = cfg->xi_prior_mean,
-        .xi_prior_var = cfg->xi_prior_var,
-        .xi_tune_sd = cfg->xi_tune_sd,
-      };
+      char group_name[PATH_MAX];
+      snprintf(group_name, PATH_MAX, "/output/m%02d/p4", (int)month);
 
-      fprintf(stderr, "parameters:\n");
-      qdm_parameters_fprint(stderr, &parameters);
+      hid_t group = qdm_data_create_group(output, group_name);
 
-      qdm_evaluation *evaluation = qdm_evaluation_new(&parameters);
-
-      status = qdm_evaluation_run(evaluation, future, FUTURE_YEAR, FUTURE_MONTH, FUTURE_VALUE);
+      status = qdm_matrix_hd5_write(group, "bc", bc);
       if (status != 0) {
         goto cleanup;
       }
 
-      fprintf(stderr, "evaluation final:\n");
-      qdm_evaluation_fprint(stderr, evaluation);
+      H5Gclose(group);
 
-      {
-        char group_name[PATH_MAX];
-
-        snprintf(group_name, PATH_MAX, "/output/%s/analysis", phase_name);
-
-        hid_t group = qdm_data_create_group(output, group_name);
-        if (group < 0) {
-          status = group;
-          goto cleanup;
-        }
-
-        status = qdm_evaluation_write(group, evaluation);
-        if (status != 0) {
-          goto cleanup;
-        }
-
-        H5Gclose(group);
-
-        status = H5Fflush(output, H5F_SCOPE_GLOBAL);
-        if (status != 0) {
-          goto cleanup;
-        }
-      }
-
-      qdm_evaluation_free(evaluation);
+      gsl_matrix_free(bc);
+      gsl_vector_free(y);
+      gsl_vector_free(days);
+      gsl_vector_free(years);
     }
-
-    qdm_evaluation_free(best);
-    */
   }
 
 cleanup:

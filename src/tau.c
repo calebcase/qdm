@@ -92,7 +92,7 @@ qdm_tau_alloc(
   t->high = high;
 
   t->spline_df = spline_df;
-  t->knots = knots;
+  t->knots = qdm_vector_copy(knots);
 
   qdm_tau_reset_setup(t);
   qdm_tau_table_setup(t);

@@ -108,6 +108,19 @@ qdm_ijk_get_ij(
   );
 }
 
+double
+qdm_ijk_get(
+    qdm_ijk *t,
+    size_t i,
+    size_t j,
+    size_t k
+)
+{
+  gsl_matrix_view ij = qdm_ijk_get_ij(t, k);
+
+  return gsl_matrix_get(&ij.matrix, i, j);
+}
+
 int
 qdm_ijk_write(
     hid_t id,

@@ -58,6 +58,14 @@ qdm_ijk_get_ij(
     size_t k
 );
 
+double
+qdm_ijk_get(
+    qdm_ijk *t,
+    size_t i,
+    size_t j,
+    size_t k
+);
+
 int
 qdm_ijk_write(
     hid_t id,

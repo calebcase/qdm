@@ -19,6 +19,8 @@ qdm_evaluation_new(const qdm_parameters *parameters)
   e->dic = 0;
   e->pd = 0;
 
+  e->t = NULL;
+
   e->mcmc = NULL;
 
   e->theta_bar = NULL;
@@ -61,6 +63,9 @@ qdm_evaluation_free(qdm_evaluation *e)
 
   qdm_mcmc_free(e->mcmc);
   e->mcmc = NULL;
+
+  qdm_tau_free(e->t);
+  e->t = NULL;
 
   free(e);
 }
@@ -222,7 +227,6 @@ qdm_evaluation_run(
   gsl_matrix *theta = NULL;
   gsl_vector *ll = NULL;
   gsl_vector *tau = NULL;
-  qdm_tau *t = NULL;
 
   gsl_matrix *theta_tune = NULL;
   gsl_matrix *theta_acc = NULL;
@@ -304,7 +308,7 @@ qdm_evaluation_run(
     size_t m = e->parameters.spline_df + e->parameters.knot;
 
     m_knots = qdm_knots_vector(e->parameters.spline_df, interior_knots);
-    t = qdm_tau_alloc(e->parameters.tau_low, e->parameters.tau_high, e->parameters.spline_df, m_knots);
+    e->t = qdm_tau_alloc(e->parameters.tau_low, e->parameters.tau_high, e->parameters.spline_df, m_knots);
 
     gsl_vector *middle = qdm_vector_seq(e->parameters.tau_low, e->parameters.tau_high, 0.01);
 
@@ -356,7 +360,7 @@ qdm_evaluation_run(
           gsl_vector_get(years_norm, i),
           gsl_vector_get(values, i),
 
-          t,
+          e->t,
           xi,
 
           theta
@@ -397,7 +401,7 @@ qdm_evaluation_run(
       .x = years_norm,
       .y = values,
 
-      .t = t,
+      .t = e->t,
       .m_knots = m_knots,
 
       .truncate = e->parameters.truncate,
@@ -490,7 +494,7 @@ qdm_evaluation_run(
           gsl_vector_get(years_norm, i),
           gsl_vector_get(values, i),
 
-          t,
+          e->t,
           xi_bar,
 
           theta_bar
@@ -528,7 +532,6 @@ qdm_evaluation_run(
   gsl_vector_free(values);
   gsl_vector_free(values_sorted);
   gsl_vector_free(interior_knots);
-  qdm_tau_free(t);
   gsl_vector_free(m_knots);
   gsl_matrix_free(theta);
   gsl_vector_free(ll);

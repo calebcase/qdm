@@ -8,6 +8,7 @@ c_args = [
 # libqdm
 
 libqdm_src = [
+  'bias.c',
   'config.c',
   'data.c',
   'evaluation.c',

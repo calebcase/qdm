@@ -4,6 +4,7 @@ install_headers(
 
 install_headers(
   'qdm/config.h',
+  'qdm/bias.h',
   'qdm/data.h',
   'qdm/evaluation.h',
   'qdm/gsl.h',
