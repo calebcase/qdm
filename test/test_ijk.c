@@ -209,6 +209,47 @@ test_qdm_ijk_get_ij(
   return MUNIT_OK;
 }
 
+static
+MunitResult
+test_qdm_ijk_cov(
+    MUNIT_UNUSED const MunitParameter params[],
+    MUNIT_UNUSED void* fixture
+)
+{
+  double data[] = {
+    0, 1, 2,
+    1, 1, 2,
+
+    1, 2, 0,
+    2, 2, 0,
+
+    2, 0, 1,
+    0, 0, 1,
+
+    3, 3, 3,
+    3, 3, 3,
+  };
+
+  qdm_ijk_view t = qdm_ijk_view_array(data, 2, 3, 4);
+
+  gsl_matrix *result = qdm_ijk_cov(&t.ijk);
+
+  double expect_data[] = {
+    1.6666667, 0.6666667, 0.6666667, 0.6666667, 0.6666667, 0.6666667,
+    0.6666667, 1.6666667, 0.6666667, 1.6666667, 1.6666667, 0.6666667,
+    0.6666667, 0.6666667, 1.6666667, 0.6666667, 0.6666667, 1.6666667,
+    0.6666667, 1.6666667, 0.6666667, 1.6666667, 1.6666667, 0.6666667,
+    0.6666667, 1.6666667, 0.6666667, 1.6666667, 1.6666667, 0.6666667,
+    0.6666667, 0.6666667, 1.6666667, 0.6666667, 0.6666667, 1.6666667,
+  };
+  gsl_matrix_view expect = gsl_matrix_view_array(expect_data, 6, 6);
+
+  qdm_matrix_csv_fwrite(stderr, result);
+  munit_matrix_equal(&expect.matrix, result, 3);
+
+  return MUNIT_OK;
+}
+
 MunitTest tests_ijk[] = {
   {
     "/qdm_ijk_get_k",       // name
@@ -221,6 +262,14 @@ MunitTest tests_ijk[] = {
   {
     "/qdm_ijk_get_ij",      // name
     test_qdm_ijk_get_ij,    // test
+    NULL,                   // setup
+    NULL,                   // tear_down
+    MUNIT_TEST_OPTION_NONE, // options
+    NULL,                   // parameters
+  },
+  {
+    "/qdm_ijk_cov",         // name
+    test_qdm_ijk_cov,       // test
     NULL,                   // setup
     NULL,                   // tear_down
     MUNIT_TEST_OPTION_NONE, // options

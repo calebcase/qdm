@@ -14,6 +14,9 @@ qdm_parameters_fprint(
   fprintf(f, "%stau_high: %f\n", prefix, p->tau_high);
   fprintf(f, "%stau_low: %f\n",  prefix, p->tau_low);
 
+  fprintf(f, "%sdebug: %d\n", prefix, p->debug);
+  fprintf(f, "%stau_table: %d\n", prefix, p->tau_table);
+
   fprintf(f, "%struncate: %s\n", prefix, p->truncate ? "true" : "false");
 }
 

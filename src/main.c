@@ -73,6 +73,9 @@ phase_run(
           .xi_prior_var = cfg->xi_prior_var,
           .xi_tune_sd = cfg->xi_tune_sd,
 
+          .debug = cfg->debug,
+          .tau_table = cfg->tau_table,
+
           .truncate = truncate,
         };
 
@@ -163,6 +166,9 @@ phase_run(
       .xi_prior_mean = cfg->xi_prior_mean,
       .xi_prior_var = cfg->xi_prior_var,
       .xi_tune_sd = cfg->xi_tune_sd,
+
+      .debug = cfg->debug,
+      .tau_table = cfg->tau_table,
 
       .truncate = truncate,
     };

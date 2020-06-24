@@ -24,6 +24,11 @@ typedef struct {
   qdm_mcmc *mcmc;
 
   gsl_matrix *theta_bar;
+  gsl_matrix *theta_star_bar;
+
+  gsl_matrix *xi_cov;
+  gsl_matrix *theta_star_cov;
+
   double xi_low_bar;
   double xi_high_bar;
 

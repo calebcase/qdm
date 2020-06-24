@@ -66,6 +66,11 @@ qdm_ijk_get(
     size_t k
 );
 
+gsl_matrix *
+qdm_ijk_cov(
+    qdm_ijk *t
+);
+
 int
 qdm_ijk_write(
     hid_t id,

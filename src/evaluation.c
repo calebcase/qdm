@@ -24,6 +24,11 @@ qdm_evaluation_new(const qdm_parameters *parameters)
   e->mcmc = NULL;
 
   e->theta_bar = NULL;
+  e->theta_star_bar = NULL;
+
+  e->xi_cov = NULL;
+  e->theta_star_cov = NULL;
+
   e->xi_low_bar = 0;
   e->xi_high_bar = 0;
 
@@ -52,6 +57,15 @@ qdm_evaluation_free(qdm_evaluation *e)
 
   gsl_matrix_free(e->theta_acc);
   e->theta_acc = NULL;
+
+  gsl_matrix_free(e->theta_star_cov);
+  e->theta_bar = NULL;
+
+  gsl_matrix_free(e->xi_cov);
+  e->theta_bar = NULL;
+
+  gsl_matrix_free(e->theta_star_bar);
+  e->theta_bar = NULL;
 
   gsl_matrix_free(e->theta_bar);
   e->theta_bar = NULL;
@@ -88,6 +102,15 @@ qdm_evaluation_fprint(
 
   fprintf(f, "%stheta_bar:\n", prefix);
   qdm_matrix_csv_fwrite(f, e->theta_bar);
+
+  fprintf(f, "%stheta_star_bar:\n", prefix);
+  qdm_matrix_csv_fwrite(f, e->theta_star_bar);
+
+  fprintf(f, "%sxi_cov:\n", prefix);
+  qdm_matrix_csv_fwrite(f, e->xi_cov);
+
+  fprintf(f, "%stheta_star_cov:\n", prefix);
+  qdm_matrix_csv_fwrite(f, e->theta_star_cov);
 
   fprintf(f, "%sxi_low_bar: %f\n", prefix, e->xi_low_bar);
   fprintf(f, "%sxi_high_bar: %f\n", prefix, e->xi_high_bar);
@@ -156,6 +179,21 @@ qdm_evaluation_write(
   }
 
   status = qdm_matrix_hd5_write(id, "theta_bar", e->theta_bar);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_matrix_hd5_write(id, "theta_star_bar", e->theta_star_bar);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_matrix_hd5_write(id, "xi_cov", e->xi_cov);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_matrix_hd5_write(id, "theta_star_cov", e->theta_star_cov);
   if (status != 0) {
     goto cleanup;
   }
@@ -481,6 +519,16 @@ qdm_evaluation_run(
       }
     }
 
+    gsl_matrix *theta_star_bar = gsl_matrix_alloc(theta->size1, theta->size2);
+
+    for (size_t i = 0; i < e->mcmc->r.theta_star->size1; i++) {
+      for (size_t j = 0; j < e->mcmc->r.theta_star->size2; j++) {
+        gsl_vector_view theta_k = qdm_ijk_get_k(e->mcmc->r.theta_star, i, j);
+
+        gsl_matrix_set(theta_star_bar, i, j, gsl_stats_mean(theta_k.vector.data, theta_k.vector.stride, theta_k.vector.size));
+      }
+    }
+
     for (size_t i = 0; i < values->size; i++) {
       double theta_bar_ll = 0;
       double tau_tmp = 0;
@@ -505,10 +553,16 @@ qdm_evaluation_run(
     e->dic = e->pd + d_bar;
 
     e->theta_bar = qdm_matrix_copy(theta_bar);
+    e->theta_star_bar = qdm_matrix_copy(theta_star_bar);
+
+    e->xi_cov = qdm_ijk_cov(e->mcmc->r.xi);
+    e->theta_star_cov = qdm_ijk_cov(e->mcmc->r.theta_star);
+
     e->xi_low_bar = xi_low_bar;
     e->xi_high_bar = xi_high_bar;
 
     gsl_vector_free(xi_bar);
+    gsl_matrix_free(theta_star_bar);
     gsl_matrix_free(theta_bar);
     gsl_vector_free(ll_sum);
 

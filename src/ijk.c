@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+#include <gsl/gsl_statistics_double.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 
@@ -119,6 +120,47 @@ qdm_ijk_get(
   gsl_matrix_view ij = qdm_ijk_get_ij(t, k);
 
   return gsl_matrix_get(&ij.matrix, i, j);
+}
+
+gsl_matrix *
+qdm_ijk_cov(
+    qdm_ijk *t
+)
+{
+  size_t d = t->size1 * t->size2;
+  size_t dr = 0;
+
+  gsl_matrix *r = gsl_matrix_calloc(d, d);
+
+  for (size_t i0 = 0; i0 < t->size1; i0++) {
+    for (size_t j0 = 0; j0 < t->size2; j0++) {
+      gsl_vector_view k0 = qdm_ijk_get_k(t, i0, j0);
+
+      /* TODO: When we have time (and if it matters), this is symmetric and we
+       * don't need to do a bunch of these if we get a little clever about
+       * copying the mirror'd results.
+       */
+      for (size_t ip = 0; ip < t->size1; ip++) {
+        for (size_t jp = 0; jp < t->size2; jp++) {
+          gsl_vector_view kp = qdm_ijk_get_k(t, ip, jp);
+
+          double cov = gsl_stats_covariance(
+              k0.vector.data,
+              k0.vector.stride,
+              kp.vector.data,
+              kp.vector.stride,
+              kp.vector.size
+          );
+
+          gsl_matrix_set(r, dr, ip * t->size2 + jp, cov);
+        }
+      }
+
+      dr++;
+    }
+  }
+
+  return r;
 }
 
 int
