@@ -64,6 +64,8 @@ qdm_parameters_write(
   WRITE_DOUBLE(xi_prior_var);
   WRITE_DOUBLE(xi_tune_sd);
 
+  WRITE_DOUBLE(bound);
+
 #undef WRITE_DOUBLE
 #undef WRITE_INT
 

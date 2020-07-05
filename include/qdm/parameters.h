@@ -28,6 +28,8 @@ typedef struct {
   double xi_prior_var;
   double xi_tune_sd;
 
+  double bound;
+
   int debug;
   int tau_table;
 

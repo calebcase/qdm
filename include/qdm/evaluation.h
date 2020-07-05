@@ -12,6 +12,10 @@ typedef struct {
   double years_min;
   double years_max;
 
+  // Value Bounding
+  double lower_bound;
+  double upper_bound;
+
   // Diagnostics
   double waic;
   double pwaic;

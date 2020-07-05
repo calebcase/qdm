@@ -14,6 +14,9 @@ qdm_evaluation_new(const qdm_parameters *parameters)
   e->years_min = 0;
   e->years_max = 0;
 
+  e->lower_bound = 0;
+  e->upper_bound = 0;
+
   e->waic = 0;
   e->pwaic = 0;
   e->dic = 0;
@@ -93,6 +96,9 @@ qdm_evaluation_fprint(
   fprintf(f, "%syears_min: %f\n", prefix, e->years_min);
   fprintf(f, "%syears_max: %f\n", prefix, e->years_max);
 
+  fprintf(f, "%slower_bound: %f\n", prefix, e->lower_bound);
+  fprintf(f, "%supper_bound: %f\n", prefix, e->upper_bound);
+
   fprintf(f, "%swaic: %f\n", prefix, e->waic);
   fprintf(f, "%spwaic: %f\n", prefix, e->pwaic);
   fprintf(f, "%sdic: %f\n", prefix, e->dic);
@@ -158,6 +164,9 @@ qdm_evaluation_write(
 
   WRITE_DOUBLE(years_min);
   WRITE_DOUBLE(years_max);
+
+  WRITE_DOUBLE(lower_bound);
+  WRITE_DOUBLE(upper_bound);
 
   WRITE_DOUBLE(waic);
   WRITE_DOUBLE(pwaic);
@@ -297,6 +306,9 @@ qdm_evaluation_run(
   {
     values = qdm_matrix_filter(data, data_month_idx, e->parameters.month, data_value_idx);
     values_sorted = qdm_vector_sorted(values);
+
+    e->lower_bound = gsl_vector_get(values_sorted, 0) - e->parameters.bound;
+    e->upper_bound = gsl_vector_get(values_sorted, values_sorted->size - 1) + e->parameters.bound;
   }
 
   /* Optimize Knots */

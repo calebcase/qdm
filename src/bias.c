@@ -14,6 +14,9 @@ qdm_bias_values(
   double tau_low = h->parameters.tau_low;
   double tau_high = h->parameters.tau_high;
 
+  double lower_bound = h->lower_bound;
+  double upper_bound = h->upper_bound;
+
   gsl_matrix *r = gsl_matrix_calloc(n, s);
 
   fprintf(stderr, "r[%zu, %zu]\n",
@@ -69,6 +72,7 @@ qdm_bias_values(
         double xi_low = qdm_ijk_get(h->mcmc->r.xi, 0, 0, k);
 
         value = is - tau_low / ms * (pow(tau / tau_low, -xi_low) - 1);
+        value = fmax(value, lower_bound);
       } else { // tau_high < tau
         double is = qdm_tau_ispline_mmm(
             h->t,
@@ -85,6 +89,7 @@ qdm_bias_values(
         double xi_high = qdm_ijk_get(h->mcmc->r.xi, 0, 1, k);
 
         value = is - tau_high / ms * (pow((1 - tau) / (1 - tau_high), -xi_high) - 1);
+        value = fmin(value, upper_bound);
       }
 
       gsl_matrix_set(r, j, k, value);
