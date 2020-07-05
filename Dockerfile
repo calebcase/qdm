@@ -1,6 +1,6 @@
 FROM ubuntu:19.10 AS builder
 
-ENV DEBIAN_FRONTEND noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -qy update
 
