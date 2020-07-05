@@ -78,4 +78,11 @@ qdm_ijk_write(
     const qdm_ijk *t
 );
 
+int
+qdm_ijk_read(
+    hid_t id,
+    const char *name,
+    qdm_ijk **t
+);
+
 #endif /* QDM_IJK_H */

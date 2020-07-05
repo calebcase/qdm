@@ -13,7 +13,6 @@
 #include <qdm/mcmc.h>
 #include <qdm/mspline.h>
 #include <qdm/parameters.h>
-#include <qdm/state.h>
 #include <qdm/tau.h>
 #include <qdm/theta.h>
 

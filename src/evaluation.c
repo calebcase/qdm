@@ -1,6 +1,8 @@
 #include <assert.h>
 
 #include <gsl/gsl_statistics_double.h>
+#include <hdf5.h>
+#include <hdf5_hl.h>
 
 #include <qdm.h>
 
@@ -10,6 +12,8 @@ qdm_evaluation_new(const qdm_parameters *parameters)
   qdm_evaluation *e = malloc(sizeof(qdm_evaluation));
 
   e->parameters = *parameters;
+
+  e->rng = gsl_rng_alloc(gsl_rng_default);
 
   e->years_min = 0;
   e->years_max = 0;
@@ -40,6 +44,8 @@ qdm_evaluation_new(const qdm_parameters *parameters)
 
   e->m_knots = NULL;
 
+  e->rng_seed = 0;
+
   e->elapsed = 0;
 
   return e;
@@ -51,6 +57,8 @@ qdm_evaluation_free(qdm_evaluation *e)
   if (e == NULL) {
     return;
   }
+
+  e->rng_seed = 0;
 
   gsl_vector_free(e->m_knots);
   e->m_knots = NULL;
@@ -78,6 +86,9 @@ qdm_evaluation_free(qdm_evaluation *e)
 
   qdm_tau_free(e->t);
   e->t = NULL;
+
+  gsl_rng_free(e->rng);
+  e->rng = NULL;
 
   free(e);
 }
@@ -130,7 +141,131 @@ qdm_evaluation_fprint(
   fprintf(f, "%sm_knots:\n", prefix);
   qdm_vector_csv_fwrite(f, e->m_knots);
 
+  fprintf(f, "%srng_seed: %lu\n", prefix, e->rng_seed);
+
   fprintf(f, "%selapsed: %f\n", prefix, e->elapsed);
+}
+
+int
+qdm_evaluation_read(
+    hid_t id,
+    qdm_evaluation **e
+)
+{
+  int status = 0;
+
+  hid_t parameters_group = -1;
+  hid_t mcmc_group = -1;
+
+  parameters_group = H5Gopen(id, "parameters", H5P_DEFAULT);
+  if (parameters_group < 0) {
+    status = parameters_group;
+
+    goto cleanup;
+  }
+
+  qdm_parameters parameters = {0};
+  status = qdm_parameters_read(parameters_group, &parameters);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  *e = qdm_evaluation_new(&parameters);
+
+#define READ(t, n) \
+  status = H5LTread_dataset_##t(id, #n, &(*e)->n); \
+  if (status < 0) { \
+    goto cleanup; \
+  }
+
+  READ(double, years_min);
+  READ(double, years_max);
+
+  READ(double, lower_bound);
+  READ(double, upper_bound);
+
+  READ(double, waic);
+  READ(double, pwaic);
+  READ(double, dic);
+  READ(double, pd);
+
+  mcmc_group = H5Gopen(id, "mcmc", H5P_DEFAULT);
+  if (mcmc_group < 0) {
+    status = mcmc_group;
+
+    goto cleanup;
+  }
+
+  status = qdm_mcmc_read(mcmc_group, &(*e)->mcmc);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_matrix_hd5_read(id, "theta_bar", &(*e)->theta_bar);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_matrix_hd5_read(id, "theta_star_bar", &(*e)->theta_star_bar);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_matrix_hd5_read(id, "xi_cov", &(*e)->xi_cov);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_matrix_hd5_read(id, "theta_star_cov", &(*e)->theta_star_cov);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  READ(double, xi_high_bar);
+  READ(double, xi_low_bar);
+
+  status = qdm_matrix_hd5_read(id, "theta_acc", &(*e)->theta_acc);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_vector_hd5_read(id, "xi_acc", &(*e)->xi_acc);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_vector_hd5_read(id, "m_knots", &(*e)->m_knots);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = H5LTread_dataset(id, "rng_seed", H5T_NATIVE_ULONG, &(*e)->rng_seed);
+  if (status < 0) {
+    goto cleanup;
+  }
+
+  READ(double, elapsed);
+
+#undef READ
+
+  (*e)->t = qdm_tau_alloc(
+      (*e)->parameters.tau_table,
+      (*e)->parameters.tau_low,
+      (*e)->parameters.tau_high,
+      (*e)->parameters.spline_df,
+      (*e)->m_knots
+  );
+
+cleanup:
+  if (parameters_group >= 0) {
+    H5Gclose(parameters_group);
+  }
+
+  if (mcmc_group >= 0) {
+    H5Gclose(mcmc_group);
+  }
+
+  return status;
 }
 
 int
@@ -173,18 +308,16 @@ qdm_evaluation_write(
   WRITE_DOUBLE(dic);
   WRITE_DOUBLE(pd);
 
-  if (e->parameters.debug == 1) {
-    mcmc_group = qdm_data_create_group(id, "mcmc");
-    if (mcmc_group < 0) {
-      status = mcmc_group;
+  mcmc_group = qdm_data_create_group(id, "mcmc");
+  if (mcmc_group < 0) {
+    status = mcmc_group;
 
-      goto cleanup;
-    }
+    goto cleanup;
+  }
 
-    status = qdm_mcmc_write(mcmc_group, e->mcmc);
-    if (status != 0) {
-      goto cleanup;
-    }
+  status = qdm_mcmc_write(mcmc_group, e->mcmc);
+  if (status != 0) {
+    goto cleanup;
   }
 
   status = qdm_matrix_hd5_write(id, "theta_bar", e->theta_bar);
@@ -223,6 +356,16 @@ qdm_evaluation_write(
   status = qdm_vector_hd5_write(id, "m_knots", e->m_knots);
   if (status != 0) {
     goto cleanup;
+  }
+
+  {
+    hsize_t dims[1] = {1};
+    unsigned long int data[1] = {e->rng_seed};
+
+    status = H5LTmake_dataset(id, "rng_seed", 1, dims, H5T_NATIVE_ULONG, data);
+    if (status < 0) {
+      goto cleanup;
+    }
   }
 
   WRITE_DOUBLE(elapsed);
@@ -278,7 +421,7 @@ qdm_evaluation_run(
 
   /* Initialize RNG */
 
-  gsl_rng_set(qdm_state->rng, e->parameters.rng_seed);
+  gsl_rng_set(e->rng, e->parameters.rng_seed);
 
   /* Normalize Years */
 
@@ -327,7 +470,7 @@ qdm_evaluation_run(
     status = qdm_knots_optimize(
         interior_knots,
 
-        qdm_state->rng,
+        e->rng,
 
         values_sorted,
         middle,
@@ -425,7 +568,7 @@ qdm_evaluation_run(
 
   {
     qdm_mcmc_parameters mcmc_p = {
-      .rng = qdm_state->rng,
+      .rng = e->rng,
 
       .burn = e->parameters.burn,
       .iter = e->parameters.iter,
@@ -589,6 +732,8 @@ qdm_evaluation_run(
     e->xi_acc = qdm_vector_copy(e->mcmc->w.xi_acc);
 
     e->m_knots = qdm_vector_copy(m_knots);
+
+    e->rng_seed = gsl_rng_get(e->rng);
   }
 
   gsl_vector_free(years);

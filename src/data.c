@@ -35,7 +35,14 @@ hid_t
 qdm_data_create_file(
     const char *path
 ) {
-  return H5Fcreate(path, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t id = -1;
+
+  id = H5Fopen(path, H5F_ACC_RDWR, H5P_DEFAULT);
+  if (id < 0) {
+    id = H5Fcreate(path, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
+  }
+
+  return id;
 }
 
 hid_t

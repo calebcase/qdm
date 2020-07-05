@@ -6,6 +6,8 @@
 #include <unistd.h>
 
 #include <argtable2.h>
+#include <hdf5.h>
+#include <hdf5_hl.h>
 #include <qdm.h>
 
 #define MAX_ARG_ERRORS 20
@@ -42,6 +44,27 @@ phase_run(
 {
   int status = 0;
 
+  /* Attempt to read an existing result. If one isn't found, then proceed with calculating. */
+  {
+    char group_name[PATH_MAX];
+
+    int month = (int)gsl_vector_get(cfg->months, months_idx);
+
+    snprintf(group_name, PATH_MAX, "/output/m%02d/%s/analysis", month, phase_name);
+
+    hid_t group = H5Gopen(output, group_name, H5P_DEFAULT);
+    if (group >= 0) {
+      status = qdm_evaluation_read(group, result);
+      if (status == 0) {
+        fprintf(stderr, "Loaded month %02d phase %s from checkpoint...\n", month, phase_name);
+
+        goto cleanup;
+      }
+    }
+
+    status = 0;
+  }
+
   qdm_evaluation *best = NULL;
 
   size_t evaluations_expected = cfg->knots->size * cfg->tau_highs->size * cfg->tau_lows->size;
@@ -52,6 +75,8 @@ phase_run(
     for (size_t tau_highs_idx = 0; tau_highs_idx < cfg->tau_highs->size; tau_highs_idx++) {
       for (size_t tau_lows_idx = 0; tau_lows_idx < cfg->tau_lows->size; tau_lows_idx++) {
         qdm_parameters parameters = {
+          .rng_seed = cfg->rng_seed,
+
           .acc_check = cfg->acc_check,
           .burn = cfg->burn_discovery,
           .iter = cfg->iter_discovery,
@@ -61,6 +86,7 @@ phase_run(
 
           .month = gsl_vector_get(cfg->months, months_idx),
           .knot = gsl_vector_get(cfg->knots, knots_idx),
+
           .tau_high = gsl_vector_get(cfg->tau_highs, tau_highs_idx),
           .tau_low = gsl_vector_get(cfg->tau_lows, tau_lows_idx),
 
@@ -107,6 +133,8 @@ phase_run(
 
           snprintf(group_name, PATH_MAX, "/output/m%02d/%s/discovery/e%0*zu", (int)parameters.month, phase_name, (int)log10(evaluations_expected), evaluations_done);
 
+          H5Ldelete(output, group_name, H5P_DEFAULT);
+
           hid_t group = qdm_data_create_group(output, group_name);
           if (group < 0) {
             status = group;
@@ -148,6 +176,8 @@ phase_run(
 
   {
     qdm_parameters parameters = {
+      .rng_seed = cfg->rng_seed,
+
       .acc_check = cfg->acc_check,
       .burn = cfg->burn_analysis,
       .iter = cfg->iter_analysis,
@@ -157,6 +187,7 @@ phase_run(
 
       .month = gsl_vector_get(cfg->months, months_idx),
       .knot = best->parameters.knot,
+
       .tau_high = best->parameters.tau_high,
       .tau_low = best->parameters.tau_low,
 
@@ -333,6 +364,28 @@ main(int argc, char **argv)
   /* Perform Evaluations */
 
   for (size_t months_idx = 0; months_idx < cfg->months->size; months_idx++) {
+    int month = (int)gsl_vector_get(cfg->months, months_idx);
+
+    /* Check if the output for this has already been finalized. */
+    {
+      char group_name[PATH_MAX];
+      snprintf(group_name, PATH_MAX, "/output/m%02d", month);
+
+      hid_t group = H5Gopen(output, group_name, H5P_DEFAULT);
+      if (group >= 0) {
+        int finalized = 0;
+
+        status = H5LTread_dataset_int(group, "finalized", &finalized);
+        if (status >= 0) {
+          if (finalized) {
+            fprintf(stderr, "Skipping %s, output is already finalized.\n", group_name);
+
+            continue;
+          }
+        }
+      }
+    }
+
     /* Phase 1: Future */
     qdm_evaluation *p1e = NULL;
     status = phase_run(
@@ -356,7 +409,11 @@ main(int argc, char **argv)
       goto cleanup;
     }
 
+    fprintf(stderr, "\n\nPhase 1 Complete\n\n\n");
+
     /* Phase 2: Historical Observations */
+    cfg->rng_seed = p1e->rng_seed;
+
     qdm_evaluation *p2e = NULL;
     status = phase_run(
         &p2e,
@@ -379,7 +436,11 @@ main(int argc, char **argv)
       goto cleanup;
     }
 
+    fprintf(stderr, "\n\nPhase 2 Complete\n\n\n");
+
     /* Phase 3: Historical Hindcasts */
+    cfg->rng_seed = p2e->rng_seed;
+
     qdm_evaluation *p3e = NULL;
     status = phase_run(
         &p3e,
@@ -402,32 +463,65 @@ main(int argc, char **argv)
       goto cleanup;
     }
 
+    fprintf(stderr, "\n\nPhase 3 Complete\n\n\n");
+
     /* Bias Correction */
+    cfg->rng_seed = p3e->rng_seed;
+
     {
-      double month = gsl_vector_get(cfg->months, months_idx);
-
-      gsl_vector *years = qdm_matrix_filter(future, FUTURE_MONTH, month, FUTURE_YEAR);
-      gsl_vector *days = qdm_matrix_filter(future, FUTURE_MONTH, month, FUTURE_DAY);
-      gsl_vector *y = qdm_matrix_filter(future, FUTURE_MONTH, month, FUTURE_VALUE);
-
-      gsl_matrix *bc = qdm_bias_correct(years, month, days, y, p1e, p2e, p3e);
-
       char group_name[PATH_MAX];
-      snprintf(group_name, PATH_MAX, "/output/m%02d/p4", (int)month);
+      snprintf(group_name, PATH_MAX, "/output/m%02d/p4", month);
 
-      hid_t group = qdm_data_create_group(output, group_name);
+      hid_t group = H5Gopen(output, group_name, H5P_DEFAULT);
+      if (group >= 0) {
+        fprintf(stderr, "Loaded month %02d phase p4 from checkpoint...\n", month);
+      } else {
+        gsl_vector *years = qdm_matrix_filter(future, FUTURE_MONTH, (double)month, FUTURE_YEAR);
+        gsl_vector *days = qdm_matrix_filter(future, FUTURE_MONTH, (double)month, FUTURE_DAY);
+        gsl_vector *y = qdm_matrix_filter(future, FUTURE_MONTH, (double)month, FUTURE_VALUE);
 
-      status = qdm_matrix_hd5_write(group, "bc", bc);
+        gsl_matrix *bc = qdm_bias_correct(years, (double)month, days, y, p1e, p2e, p3e);
+
+        group = qdm_data_create_group(output, group_name);
+
+        status = qdm_matrix_hd5_write(group, "bc", bc);
+        if (status != 0) {
+          goto cleanup;
+        }
+
+        H5Gclose(group);
+
+        gsl_matrix_free(bc);
+        gsl_vector_free(y);
+        gsl_vector_free(days);
+        gsl_vector_free(years);
+      }
+    }
+
+    fprintf(stderr, "\n\nPhase 4 Complete\n\n\n");
+
+    /* Remove debugging and intermediate information. */
+    if (!cfg->debug) {
+      char group_name[PATH_MAX];
+
+      for (int phase = 1; phase <= 3; phase++) {
+        snprintf(group_name, PATH_MAX, "/output/m%02d/p%d/discovery", month, phase);
+        H5Ldelete(output, group_name, H5P_DEFAULT);
+
+        snprintf(group_name, PATH_MAX, "/output/m%02d/p%d/analysis/mcmc", month, phase);
+        H5Ldelete(output, group_name, H5P_DEFAULT);
+      }
+    }
+
+    /* Finalize the output file. */
+    {
+      char path[PATH_MAX];
+      snprintf(path, PATH_MAX, "/output/m%02d/finalized", month);
+
+      status = qdm_int_write(output, path, 1);
       if (status != 0) {
         goto cleanup;
       }
-
-      H5Gclose(group);
-
-      gsl_matrix_free(bc);
-      gsl_vector_free(y);
-      gsl_vector_free(days);
-      gsl_vector_free(years);
     }
   }
 

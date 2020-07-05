@@ -2,6 +2,8 @@
 
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_randist.h>
+#include <hdf5.h>
+#include <hdf5_hl.h>
 
 static
 void
@@ -502,6 +504,47 @@ qdm_mcmc_write(
   if (status != 0) {
     goto cleanup;
   }
+
+cleanup:
+  return status;
+}
+
+int
+qdm_mcmc_read(
+    hid_t id,
+    qdm_mcmc **mcmc
+)
+{
+  int status = 0;
+
+  *mcmc = malloc(sizeof(qdm_mcmc));
+
+  status = qdm_ijk_read(id, "theta", &(*mcmc)->r.theta);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_ijk_read(id, "theta_star", &(*mcmc)->r.theta_star);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_ijk_read(id, "ll", &(*mcmc)->r.ll);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_ijk_read(id, "tau", &(*mcmc)->r.tau);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  status = qdm_ijk_read(id, "xi", &(*mcmc)->r.xi);
+  if (status != 0) {
+    goto cleanup;
+  }
+
+  (*mcmc)->r.s = (*mcmc)->r.theta->size3;
 
 cleanup:
   return status;

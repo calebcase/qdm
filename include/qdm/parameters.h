@@ -4,7 +4,7 @@
 #include <gsl/gsl_vector.h>
 
 typedef struct {
-  int rng_seed;
+  unsigned long int rng_seed;
 
   int acc_check;
   int burn;
@@ -46,6 +46,12 @@ int
 qdm_parameters_write(
     hid_t id,
     const qdm_parameters *p
+);
+
+int
+qdm_parameters_read(
+    hid_t id,
+    qdm_parameters *p
 );
 
 #endif /* QDM_PARAMETERS_H */

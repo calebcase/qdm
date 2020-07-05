@@ -8,6 +8,9 @@ typedef struct {
   // Parameters
   qdm_parameters parameters;
 
+  // RNG
+  gsl_rng *rng;
+
   // Years (pre-scaling)
   double years_min;
   double years_max;
@@ -41,6 +44,8 @@ typedef struct {
 
   gsl_vector *m_knots;
 
+  unsigned long int rng_seed;
+
   // Performance Metrics
   double elapsed;
 } qdm_evaluation;
@@ -61,6 +66,12 @@ int
 qdm_evaluation_write(
     hid_t id,
     const qdm_evaluation *e
+);
+
+int
+qdm_evaluation_read(
+    hid_t id,
+    qdm_evaluation **e
 );
 
 int
