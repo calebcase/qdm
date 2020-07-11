@@ -72,42 +72,6 @@ qdm_vector_csv_fwrite(FILE *f, const gsl_vector *v)
   fprintf(f, "\n");
 }
 
-gsl_vector *
-qdm_vector_csv_fread(FILE *stream)
-{
-  const size_t chunk_size = 1024;
-  size_t chunk_count = 0;
-
-  size_t data_count = 0;
-  double *data = NULL;
-
-  int nread = 0;
-  double value = 0;
-  while (1) {
-    nread = fscanf(stream, "%lg\n", &value);
-    if (nread <= 0) {
-      break;
-    }
-
-    if (data_count >= chunk_count * chunk_size) {
-      chunk_count++;
-      data = realloc(data, chunk_count * chunk_size * sizeof(double));
-    }
-
-    data[data_count] = value;
-    data_count++;
-  }
-
-  gsl_vector *v = gsl_vector_alloc(data_count);
-  for (size_t i = 0; i < data_count; i++) {
-    gsl_vector_set(v, i, data[i]);
-  }
-
-  free(data);
-
-  return v;
-}
-
 void
 qdm_matrix_csv_fwrite(FILE *f, const gsl_matrix *m)
 {

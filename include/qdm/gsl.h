@@ -19,9 +19,6 @@ qdm_vector_search(const gsl_vector *v, double needle);
 void
 qdm_vector_csv_fwrite(FILE *f, const gsl_vector *v);
 
-gsl_vector *
-qdm_vector_csv_fread(FILE *stream);
-
 void
 qdm_matrix_csv_fwrite(FILE *f, const gsl_matrix *m);
 

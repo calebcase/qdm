@@ -7,6 +7,7 @@ RUN apt-get -qy update
 RUN apt-get -qy install \
       build-essential \
       cmake \
+      cppcheck \
       curl \
       gfortran \
       git \
@@ -64,6 +65,7 @@ RUN rm -fr build \
       --buildtype=debug
 
 RUN ninja -C build
+RUN ninja -C build cppcheck
 RUN ninja -C build test \
  || (cat /src/github.com/calebcase/qdm/build/meson-logs/testlog.txt && false)
 RUN ninja -C build install \
