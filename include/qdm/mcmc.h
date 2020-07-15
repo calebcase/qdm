@@ -125,4 +125,10 @@ qdm_mcmc_write(
     const qdm_mcmc *mcmc
 );
 
+int
+qdm_mcmc_read(
+    hid_t id,
+    qdm_mcmc **mcmc
+);
+
 #endif /* QDM_MCMC_H */

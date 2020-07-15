@@ -40,7 +40,10 @@ qdm_config_read(
     goto cleanup; \
   }
 
-  READ(int, rng_seed);
+  status = H5LTread_dataset(group_id, "rng_seed", H5T_NATIVE_ULONG, &config->rng_seed);
+  if (status < 0) {
+    goto cleanup;
+  }
 
   READ(int, acc_check);
 
@@ -101,6 +104,7 @@ qdm_config_fwrite(
   const char *prefix = "  ";
 
 #define PRINT_INT(n) fprintf(f, "%s%s: %d\n", prefix, #n, cfg->n);
+#define PRINT_ULINT(n) fprintf(f, "%s%s: %lu\n", prefix, #n, cfg->n);
 #define PRINT_DOUBLE(n) fprintf(f, "%s%s: %f\n", prefix, #n, cfg->n);
 #define PRINT_VECTOR(n) \
   fprintf(f, "%s%s:", prefix, #n); \
@@ -115,7 +119,7 @@ qdm_config_fwrite(
     fprintf(f, " NULL\n"); \
   }
 
-  PRINT_INT(rng_seed);
+  PRINT_ULINT(rng_seed);
 
   PRINT_INT(acc_check);
 
@@ -151,5 +155,6 @@ qdm_config_fwrite(
 
 #undef PRINT_VECTOR
 #undef PRINT_DOUBLE
+#undef PRINT_ULINT
 #undef PRINT_INT
 }

@@ -4,7 +4,7 @@
 #include <gsl/gsl_vector.h>
 
 typedef struct {
-  int rng_seed;
+  unsigned long int rng_seed;
 
   int acc_check;
 

@@ -15,7 +15,6 @@ install_headers(
   'qdm/mcmc.h',
   'qdm/mspline.h',
   'qdm/parameters.h',
-  'qdm/state.h',
   'qdm/tau.h',
   'qdm/theta.h',
 

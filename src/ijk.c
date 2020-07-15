@@ -226,3 +226,48 @@ cleanup:
 
   return status;
 }
+
+int
+qdm_ijk_read(
+    hid_t id,
+    const char *name,
+    qdm_ijk **t
+)
+{
+  int status = 0;
+
+  int rank = 0;
+
+  status = H5LTget_dataset_ndims(id, name, &rank);
+  if (status < 0) {
+    return status;
+  }
+
+  if (rank != 3) {
+    return -1;
+  }
+
+  hsize_t dims[3];
+
+  status = H5LTget_dataset_info(id, name, dims, NULL, NULL);
+  if (status < 0) {
+    return status;
+  }
+
+  size_t size3 = dims[0];
+  size_t size1 = dims[1];
+  size_t size2 = dims[2];
+
+  qdm_ijk *tmp = qdm_ijk_alloc(size1, size2, size3);
+
+  status = H5LTread_dataset_double(id, name, tmp->data);
+  if (status < 0) {
+    qdm_ijk_free(tmp);
+
+    return status;
+  }
+
+  *t = tmp;
+
+  return status;
+}

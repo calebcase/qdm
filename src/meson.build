@@ -20,7 +20,6 @@ libqdm_src = [
   'mcmc.c',
   'mspline.c',
   'parameters.c',
-  'state.c',
   'tau.c',
   'theta.c',
 ]
