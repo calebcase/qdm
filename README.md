@@ -44,8 +44,23 @@ docker run -it --rm -v $(pwd):/data qdm
 Run locally (if you have extracted the binary):
 
 ```bash
-./qdm
+./qdm -i test/data/input.h5 -o test/data/output.h5
 ```
+
+During the run the output file contains temporary data that is used for
+checkpointing and the final phase of analysis. If the debug flag is set to
+false, then this temporary data is removed at the end of processing.  However
+this does not reclaim the space due to the way h5 files work. In order to
+reclaim the unused space it is necessary to run h5repack:
+
+```bash
+# If you haven't installed the h5 tools yet:
+apt-get install hdf5-tools
+
+h5repack test/data/output.h5 test/data/output.h5.repack
+```
+
+This can reduce the output file size significantly.
 
 ---
 
